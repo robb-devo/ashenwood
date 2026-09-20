@@ -23,6 +23,7 @@ var _attacking: bool = false
 var _dead: bool = false
 var _respawn_timer: float = 0.0
 var _i_frames: float = 0.0
+var _zone: StringName = &"village"
 
 
 func _ready() -> void:
@@ -39,11 +40,19 @@ func _ready() -> void:
 	EventBus.equipment_changed.connect(_refresh_weapon_visual)
 	EventBus.player_died.connect(_on_died_signal)
 	_play_anim("idle")
+	AudioService.play_music(&"village_ambient")
 
 
 func _physics_process(delta: float) -> void:
 	_attack_cd = maxf(0.0, _attack_cd - delta)
 	_i_frames = maxf(0.0, _i_frames - delta)
+	_update_zone()
+
+	var hud := get_tree().get_first_node_in_group("hud")
+	if hud and hud.has_method("set_attack_cooldown"):
+		var wdef := _get_weapon_def()
+		var max_cd: float = 0.38 / maxf(0.5, wdef.attack_speed if wdef else 1.0)
+		hud.set_attack_cooldown(_attack_cd / max_cd)
 
 	if _dead:
 		_respawn_timer -= delta
@@ -274,3 +283,21 @@ func _play_anim(anim_name: StringName) -> void:
 
 func get_facing_direction() -> Vector3:
 	return -visual.global_transform.basis.z
+
+
+func _update_zone() -> void:
+	var next: StringName = &"village"
+	if global_position.x > 26.0:
+		next = &"cemetery"
+	elif global_position.z < -22.0:
+		next = &"forest"
+	if next == _zone:
+		return
+	_zone = next
+	match _zone:
+		&"forest":
+			AudioService.play_music(&"forest_ambient")
+		&"cemetery":
+			AudioService.play_music(&"cemetery_ambient")
+		_:
+			AudioService.play_music(&"village_ambient")

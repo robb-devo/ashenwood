@@ -286,6 +286,13 @@ func use_consumable_uid(uid: String) -> bool:
 	return true
 
 
+func use_first_consumable(item_id: StringName) -> bool:
+	for item in inventory:
+		if item.item_id == item_id:
+			return use_consumable_uid(item.uid)
+	return false
+
+
 func to_save_dict() -> Dictionary:
 	var inv: Array = []
 	for item in inventory:

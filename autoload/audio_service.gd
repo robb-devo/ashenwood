@@ -15,6 +15,7 @@ var vibration_enabled: bool = true
 var _players: Array[AudioStreamPlayer] = []
 var _clip_cache: Dictionary = {}
 var _player_index: int = 0
+var _current_music: StringName = &""
 
 
 func _ready() -> void:
@@ -43,9 +44,18 @@ func play_ui(clip_id: StringName = &"ui_click") -> void:
 	play_sfx(clip_id, 1.05)
 
 
-func play_music(_track_id: StringName) -> void:
-	# Ambient beds can be dropped into res://assets/audio/ later.
-	pass
+func play_music(track_id: StringName) -> void:
+	if track_id == _current_music:
+		return
+	_current_music = track_id
+	# Soft zone sting until real music assets are added.
+	match String(track_id):
+		"forest_ambient":
+			play_sfx(&"ui_click", 0.55)
+		"cemetery_ambient":
+			play_sfx(&"boss", 0.7)
+		_:
+			play_sfx(&"ui_confirm", 0.6)
 
 
 func stop_music() -> void:

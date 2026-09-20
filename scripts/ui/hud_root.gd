@@ -226,16 +226,34 @@ func _build_attack_cluster() -> void:
 	)
 	root.add_child(attack_button)
 
+	_attack_cooldown_overlay = ColorRect.new()
+	_attack_cooldown_overlay.color = Color(0.05, 0.05, 0.08, 0.45)
+	_attack_cooldown_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_attack_cooldown_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_attack_cooldown_overlay.visible = false
+	attack_button.add_child(_attack_cooldown_overlay)
+
 	var skill := Button.new()
-	skill.text = "◆"
-	skill.disabled = true
+	skill.text = "♥"
 	skill.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
 	skill.offset_left = -320
 	skill.offset_top = -200
 	skill.offset_right = -220
 	skill.offset_bottom = -100
-	skill.add_theme_font_size_override("font_size", 28)
-	skill.add_theme_stylebox_override("disabled", UiThemeScript.circle(Color(0.15, 0.16, 0.18, 0.55), Color(0.6, 0.55, 0.4, 0.25), 60))
+	skill.focus_mode = Control.FOCUS_NONE
+	skill.add_theme_font_size_override("font_size", 34)
+	skill.add_theme_color_override("font_color", Color("ffe0e8"))
+	skill.add_theme_stylebox_override("normal", UiThemeScript.circle(Color("8a3a4a"), Color("d07080"), 60))
+	skill.add_theme_stylebox_override("pressed", UiThemeScript.circle(Color("6a2a38"), Color("b05060"), 60))
+	skill.pressed.connect(func():
+		if GameState.use_first_consumable(&"health_vial"):
+			_toast("Health restored")
+			AudioService.play_sfx(&"loot_pickup")
+			VfxService.spawn_level_up()
+		else:
+			_toast("No Health Vials")
+			AudioService.play_ui(&"ui_click")
+	)
 	root.add_child(skill)
 
 	interact_button = Button.new()
@@ -260,6 +278,14 @@ func _pulse_attack() -> void:
 	var tw := create_tween()
 	tw.tween_property(attack_button, "scale", Vector2(0.92, 0.92), 0.06)
 	tw.tween_property(attack_button, "scale", Vector2.ONE, 0.1)
+
+
+func set_attack_cooldown(ratio: float) -> void:
+	if _attack_cooldown_overlay == null:
+		return
+	var r := clampf(ratio, 0.0, 1.0)
+	_attack_cooldown_overlay.visible = r > 0.02
+	_attack_cooldown_overlay.anchor_top = 1.0 - r
 
 
 func _build_toast_and_hint() -> void:
