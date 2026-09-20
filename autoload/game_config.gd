@@ -24,8 +24,8 @@ const CAMERA_FOLLOW_SMOOTHING := 8.0
 const CAMERA_LOOK_AHEAD := 1.25
 
 ## Joystick.
-const JOYSTICK_DEADZONE := 0.12
-const JOYSTICK_MAX_RADIUS := 110.0
+const JOYSTICK_DEADZONE := 0.10
+const JOYSTICK_MAX_RADIUS := 120.0
 
 ## World.
 const VILLAGE_SPAWN := Vector3(0.0, 0.0, 4.0)

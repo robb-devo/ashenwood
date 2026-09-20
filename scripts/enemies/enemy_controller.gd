@@ -4,16 +4,14 @@ extends CharacterBody3D
 
 enum State { IDLE, CHASE, ATTACK, DEAD }
 
-const EnemyDefScript = preload("res://scripts/data/enemy_def.gd")
 const LootDropScene = preload("res://scenes/loot/loot_drop.tscn")
 
 @export var enemy_id: StringName = &"forest_slime"
 
-var def: EnemyDef
+var def
 var hp: int = 1
 var state: State = State.IDLE
 var _attack_cd: float = 0.0
-var _hit_flash: float = 0.0
 var _player: Node3D
 var _visual: Node3D
 var _hp_label: Label3D
@@ -40,48 +38,113 @@ func _build_visual() -> void:
 	_visual = Node3D.new()
 	_visual.name = "Visual"
 	add_child(_visual)
-	var body := MeshInstance3D.new()
-	var mesh := CapsuleMesh.new()
-	mesh.radius = 0.35 * def.scale
-	mesh.height = 1.2 * def.scale
-	body.mesh = mesh
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = def.body_color
-	body.material_override = mat
-	body.position = Vector3(0, 0.6 * def.scale, 0)
-	_visual.add_child(body)
-	if def.elite:
-		var crown := MeshInstance3D.new()
-		var sm := SphereMesh.new()
-		sm.radius = 0.22
-		sm.height = 0.44
-		crown.mesh = sm
-		var cm := StandardMaterial3D.new()
-		cm.albedo_color = Color("c9a45c")
-		crown.material_override = cm
-		crown.position = Vector3(0, 1.35 * def.scale, 0)
-		_visual.add_child(crown)
+
+	# Soft ground shadow
+	var shadow := MeshInstance3D.new()
+	var disc := CylinderMesh.new()
+	disc.top_radius = 0.45 * def.scale
+	disc.bottom_radius = 0.45 * def.scale
+	disc.height = 0.04
+	shadow.mesh = disc
+	var sm := StandardMaterial3D.new()
+	sm.albedo_color = Color(0, 0, 0, 0.3)
+	sm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	shadow.material_override = sm
+	shadow.position = Vector3(0, 0.02, 0)
+	_visual.add_child(shadow)
+
+	match String(enemy_id):
+		"forest_slime":
+			_add_mesh(_sphere(0.55 * def.scale, def.body_color), Vector3(0, 0.45 * def.scale, 0))
+			_add_mesh(_sphere(0.18 * def.scale, Color(0.1, 0.15, 0.1)), Vector3(-0.18, 0.55 * def.scale, 0.35))
+			_add_mesh(_sphere(0.18 * def.scale, Color(0.1, 0.15, 0.1)), Vector3(0.18, 0.55 * def.scale, 0.35))
+		"wolf":
+			_add_mesh(_box(Vector3(0.45, 0.4, 0.9) * def.scale, def.body_color), Vector3(0, 0.55 * def.scale, 0))
+			_add_mesh(_box(Vector3(0.28, 0.28, 0.35) * def.scale, Color("4a3c34")), Vector3(0, 0.7 * def.scale, 0.45))
+			_add_mesh(_box(Vector3(0.12, 0.12, 0.35) * def.scale, def.body_color), Vector3(0, 0.55 * def.scale, -0.55))
+			_add_mesh(_box(Vector3(0.12, 0.35, 0.12) * def.scale, Color("3a2e28")), Vector3(-0.16, 0.22, 0.25))
+			_add_mesh(_box(Vector3(0.12, 0.35, 0.12) * def.scale, Color("3a2e28")), Vector3(0.16, 0.22, 0.25))
+			_add_mesh(_box(Vector3(0.12, 0.35, 0.12) * def.scale, Color("3a2e28")), Vector3(-0.16, 0.22, -0.25))
+			_add_mesh(_box(Vector3(0.12, 0.35, 0.12) * def.scale, Color("3a2e28")), Vector3(0.16, 0.22, -0.25))
+		"skeleton":
+			_add_mesh(_box(Vector3(0.45, 0.55, 0.28) * def.scale, def.body_color), Vector3(0, 0.9 * def.scale, 0))
+			_add_mesh(_sphere(0.24 * def.scale, Color("e8dfcf")), Vector3(0, 1.4 * def.scale, 0))
+			_add_mesh(_box(Vector3(0.14, 0.45, 0.14) * def.scale, def.body_color), Vector3(-0.28, 0.85, 0))
+			_add_mesh(_box(Vector3(0.14, 0.45, 0.14) * def.scale, def.body_color), Vector3(0.28, 0.85, 0))
+			_add_mesh(_box(Vector3(0.14, 0.5, 0.14) * def.scale, def.body_color), Vector3(-0.12, 0.35, 0))
+			_add_mesh(_box(Vector3(0.14, 0.5, 0.14) * def.scale, def.body_color), Vector3(0.12, 0.35, 0))
+		"gravekeeper":
+			_add_mesh(_box(Vector3(0.7, 0.9, 0.4) * def.scale, def.body_color), Vector3(0, 1.0 * def.scale, 0))
+			_add_mesh(_sphere(0.28 * def.scale, Color("cfc6b4")), Vector3(0, 1.65 * def.scale, 0))
+			_add_mesh(_box(Vector3(0.85, 0.2, 0.5) * def.scale, Color("2a3038")), Vector3(0, 1.55 * def.scale, 0))
+			_add_mesh(_box(Vector3(0.12, 0.12, 1.1) * def.scale, Color("8a93a0")), Vector3(0.45, 1.1, 0.35))
+			_add_mesh(_sphere(0.2 * def.scale, Color("c9a45c")), Vector3(0, 1.95 * def.scale, 0))
+		_:
+			_add_mesh(_capsule(0.35 * def.scale, 1.2 * def.scale, def.body_color), Vector3(0, 0.6 * def.scale, 0))
+
 	var col := CollisionShape3D.new()
 	var shape := CapsuleShape3D.new()
-	shape.radius = 0.35 * def.scale
-	shape.height = 1.2 * def.scale
+	shape.radius = 0.4 * def.scale
+	shape.height = 1.3 * def.scale
 	col.shape = shape
-	col.position = Vector3(0, 0.6 * def.scale, 0)
+	col.position = Vector3(0, 0.65 * def.scale, 0)
 	add_child(col)
+
 	_hp_label = Label3D.new()
-	_hp_label.font_size = 28
+	_hp_label.font_size = 30
 	_hp_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	_hp_label.position = Vector3(0, 1.5 * def.scale, 0)
+	_hp_label.modulate = Color("ffe6a8")
+	_hp_label.outline_size = 6
+	_hp_label.position = Vector3(0, 1.75 * def.scale, 0)
 	_hp_label.text = "%d" % hp
 	add_child(_hp_label)
+
+
+func _add_mesh(mi: MeshInstance3D, pos: Vector3) -> void:
+	mi.position = pos
+	_visual.add_child(mi)
+
+
+func _mat(color: Color) -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.albedo_color = color
+	m.roughness = 0.78
+	return m
+
+
+func _box(size: Vector3, color: Color) -> MeshInstance3D:
+	var mi := MeshInstance3D.new()
+	var mesh := BoxMesh.new()
+	mesh.size = size
+	mi.mesh = mesh
+	mi.material_override = _mat(color)
+	return mi
+
+
+func _sphere(radius: float, color: Color) -> MeshInstance3D:
+	var mi := MeshInstance3D.new()
+	var mesh := SphereMesh.new()
+	mesh.radius = radius
+	mesh.height = radius * 2.0
+	mi.mesh = mesh
+	mi.material_override = _mat(color)
+	return mi
+
+
+func _capsule(radius: float, height: float, color: Color) -> MeshInstance3D:
+	var mi := MeshInstance3D.new()
+	var mesh := CapsuleMesh.new()
+	mesh.radius = radius
+	mesh.height = height
+	mi.mesh = mesh
+	mi.material_override = _mat(color)
+	return mi
 
 
 func _physics_process(delta: float) -> void:
 	if state == State.DEAD:
 		return
 	_attack_cd = maxf(0.0, _attack_cd - delta)
-	if _hit_flash > 0.0:
-		_hit_flash = maxf(0.0, _hit_flash - delta)
 	if _player == null or not is_instance_valid(_player):
 		_player = get_tree().get_first_node_in_group("player")
 		return
@@ -116,7 +179,6 @@ func _physics_process(delta: float) -> void:
 			elif _attack_cd <= 0.0:
 				_do_attack()
 				_attack_cd = def.attack_cooldown
-
 	move_and_slide()
 
 
@@ -138,7 +200,6 @@ func apply_damage(amount: int, is_critical: bool) -> void:
 	if state == State.DEAD:
 		return
 	hp = maxi(0, hp - amount)
-	_hit_flash = 0.2
 	if _hp_label:
 		_hp_label.text = str(hp)
 	EventBus.damage_dealt.emit(amount, is_critical, global_position + Vector3(0, 1.0, 0))

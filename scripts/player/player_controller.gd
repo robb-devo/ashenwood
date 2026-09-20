@@ -3,6 +3,7 @@ extends CharacterBody3D
 ## Movement + melee combat + death/respawn.
 
 const CombatMathScript = preload("res://scripts/combat/combat_math.gd")
+const PlayerVisualBuilderScript = preload("res://scripts/player/player_visual_builder.gd")
 
 @export var move_speed: float = 6.5
 @export var acceleration: float = 28.0
@@ -12,6 +13,7 @@ const CombatMathScript = preload("res://scripts/combat/combat_math.gd")
 @export var attack_cooldown: float = 0.38
 
 @onready var visual: Node3D = $Visual
+@onready var bounce: Node3D = $Visual/Bounce
 @onready var anim_player: AnimationPlayer = $AnimationPlayer
 
 var _desired_velocity: Vector3 = Vector3.ZERO
@@ -28,6 +30,7 @@ func _ready() -> void:
 	acceleration = GameConfig.PLAYER_ACCELERATION
 	friction = GameConfig.PLAYER_FRICTION
 	rotation_speed = GameConfig.PLAYER_ROTATION_SPEED
+	PlayerVisualBuilderScript.build(bounce)
 	add_to_group("player")
 	global_position = GameState.position
 	EventBus.player_spawned.emit(self)

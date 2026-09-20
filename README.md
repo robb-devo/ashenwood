@@ -4,33 +4,32 @@ Portrait mobile action RPG vertical slice (Godot 4.7).
 
 ## Download Android APK
 
-Get the latest build from **Releases**:
-
 👉 **https://github.com/robb-devo/ashenwood/releases/latest**
 
-Install on your phone:
-1. Download `Ashenwood-debug.apk`
-2. Allow install from unknown sources / that browser
-3. Open the APK and install
+Install: download APK → open on phone → allow unknown sources if needed.
 
-Package ID: `com.ashenwood.game` · Portrait only
+Package: `com.ashenwood.game` · Portrait only
 
 ## Play on PC
 
-1. Double-click **`PLAY_ON_PC.bat`** (Godot 4.7 required)
-2. Or open `project.godot` in Godot 4.7 → F5
+Double-click **`PLAY_ON_PC.bat`** (needs Godot 4.7) or open `project.godot` → F5.
 
-**Controls:** Joystick / WASD · **ATK** / Enter · **Talk** near NPCs · **Menu** top-right
+**Controls**
+- **Center stick** — drag where you want to walk
+- **⚔ Attack** — lower right
+- **Talk** — appears near NPCs
+- **Menu** — character / inventory / equipment / quests / upgrades / settings
 
-## What's included
+## Vertical slice contents
 
 - Ashenwood Village, Whispering Woods, Old Cemetery
-- Combat, XP, leveling, gold, loot
-- Inventory, equipment, rarity, blacksmith upgrades
-- NPCs: Elder, Blacksmith, Merchant
-- Full 5-quest chain + save system
-- 4 enemies including Gravekeeper elite
+- Stylized wanderer, combat, death/respawn
+- 4 enemies including Gravekeeper
+- XP, leveling, gold, loot
+- Inventory, 5 gear slots, rarity, blacksmith upgrades
+- Elder / Blacksmith / Merchant + 5-quest chain
+- Local save, settings, VFX + audio hooks
 
-## Note on Play Store
+## Repo
 
-This APK is a **direct download / sideload** build. Publishing on Google Play requires a Play Developer account and store listing — not automatic from GitHub.
+https://github.com/robb-devo/ashenwood
