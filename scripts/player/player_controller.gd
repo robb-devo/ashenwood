@@ -1,6 +1,6 @@
 class_name PlayerController
 extends CharacterBody3D
-## Movement + melee combat + death/respawn.
+## Movement + melee combat with auto-aim + death/respawn.
 
 const CombatMathScript = preload("res://scripts/combat/combat_math.gd")
 const PlayerVisualBuilderScript = preload("res://scripts/player/player_visual_builder.gd")
@@ -9,8 +9,9 @@ const PlayerVisualBuilderScript = preload("res://scripts/player/player_visual_bu
 @export var acceleration: float = 28.0
 @export var friction: float = 32.0
 @export var rotation_speed: float = 14.0
-@export var attack_range: float = 2.1
-@export var attack_cooldown: float = 0.38
+@export var attack_range: float = 2.35
+@export var attack_cooldown: float = 0.36
+@export var auto_aim_range: float = 2.8
 
 @onready var visual: Node3D = $Visual
 @onready var bounce: Node3D = $Visual/Bounce
@@ -59,7 +60,8 @@ func _physics_process(delta: float) -> void:
 	if input_dir.length_squared() < 0.0001:
 		input_dir = Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
 
-	var move_dir := Vector3(input_dir.x, 0.0, -input_dir.y)
+	# Stick/screen up = world -Z (into the scene). Not inverted.
+	var move_dir := Vector3(input_dir.x, 0.0, input_dir.y)
 	if move_dir.length_squared() > 0.0001 and not _attacking:
 		move_dir = move_dir.normalized()
 		_desired_velocity = move_dir * move_speed
@@ -87,37 +89,75 @@ func try_attack() -> void:
 		return
 	_attack_cd = attack_cooldown
 	_attacking = true
+
+	var target := _find_auto_aim_target()
+	if target != null:
+		var to_t := target.global_position - global_position
+		to_t.y = 0.0
+		if to_t.length_squared() > 0.0001:
+			_face_direction(to_t.normalized(), 1.0)
+
 	_play_anim("attack")
 	AudioService.play_sfx(&"player_attack")
 	AudioService.pulse_haptic(0.15)
-	_deal_melee_hits()
-	get_tree().create_timer(0.22).timeout.connect(func():
+	_deal_melee_hits(target)
+	get_tree().create_timer(0.2).timeout.connect(func():
 		_attacking = false
 		_play_anim("walk" if _is_moving else "idle")
 	)
 
 
-func _deal_melee_hits() -> void:
-	var origin := global_position + Vector3(0, 0.8, 0)
+func _find_auto_aim_target() -> Node3D:
+	var best: Node3D = null
+	var best_dist := auto_aim_range
 	var facing := get_facing_direction()
-	var hit_any := false
 	for enemy in get_tree().get_nodes_in_group("enemies"):
 		if enemy == null or not is_instance_valid(enemy):
 			continue
 		var to_e: Vector3 = enemy.global_position - global_position
 		to_e.y = 0.0
 		var dist := to_e.length()
+		if dist > auto_aim_range or dist < 0.01:
+			continue
+		# Prefer enemies in front, but still allow nearby behind for mobile feel
+		var facing_score := facing.dot(to_e.normalized())
+		var score := dist - facing_score * 0.65
+		if score < best_dist:
+			best_dist = score
+			best = enemy as Node3D
+	return best
+
+
+func _deal_melee_hits(preferred: Node3D = null) -> void:
+	var origin := global_position + Vector3(0, 0.8, 0)
+	var facing := get_facing_direction()
+	var hit_any := false
+
+	if preferred != null and is_instance_valid(preferred) and preferred.has_method("apply_damage"):
+		var to_p: Vector3 = preferred.global_position - global_position
+		to_p.y = 0.0
+		if to_p.length() <= attack_range * 1.05:
+			var roll: Dictionary = CombatMathScript.roll_player_damage()
+			preferred.apply_damage(int(roll.damage), bool(roll.critical))
+			hit_any = true
+
+	for enemy in get_tree().get_nodes_in_group("enemies"):
+		if enemy == null or not is_instance_valid(enemy) or enemy == preferred:
+			continue
+		var to_e: Vector3 = enemy.global_position - global_position
+		to_e.y = 0.0
+		var dist := to_e.length()
 		if dist > attack_range:
 			continue
-		if dist > 0.2 and facing.dot(to_e.normalized()) < 0.15:
+		if dist > 0.25 and facing.dot(to_e.normalized()) < 0.2:
 			continue
-		var roll: Dictionary = CombatMathScript.roll_player_damage()
+		var roll2: Dictionary = CombatMathScript.roll_player_damage()
 		if enemy.has_method("apply_damage"):
-			enemy.apply_damage(int(roll.damage), bool(roll.critical))
+			enemy.apply_damage(int(roll2.damage), bool(roll2.critical))
 			hit_any = true
+
 	if not hit_any:
-		# Still show a tiny swing feedback forward
-		VfxService.spawn_hit_flash(origin + facing * 1.2, false)
+		VfxService.spawn_hit_flash(origin + facing * 1.25, false)
 
 
 func receive_enemy_hit(raw_damage: int) -> void:
@@ -162,7 +202,8 @@ func _face_direction(direction: Vector3, delta: float) -> void:
 	if direction.length_squared() < 0.0001:
 		return
 	var target_yaw := atan2(direction.x, direction.z)
-	visual.rotation.y = lerp_angle(visual.rotation.y, target_yaw, clampf(rotation_speed * delta, 0.0, 1.0))
+	var t := 1.0 if delta >= 1.0 else clampf(rotation_speed * delta, 0.0, 1.0)
+	visual.rotation.y = lerp_angle(visual.rotation.y, target_yaw, t)
 
 
 func _set_moving(moving: bool) -> void:
@@ -177,9 +218,6 @@ func _play_anim(anim_name: StringName) -> void:
 	if anim_player == null:
 		return
 	if not anim_player.has_animation(anim_name):
-		# Graceful fallback for missing clips
-		if anim_name == &"attack" or anim_name == &"hit" or anim_name == &"death":
-			return
 		return
 	if anim_player.current_animation == anim_name:
 		return

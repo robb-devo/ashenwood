@@ -177,14 +177,14 @@ func _build_quest_tracker() -> void:
 
 
 func _build_center_joystick() -> void:
+	# Bottom-center stick (prompt: comfortable mobile; user: lower middle, not screen-center)
 	var stick := Control.new()
 	stick.set_script(JoystickScript)
-	stick.set_anchors_preset(Control.PRESET_CENTER)
-	# Slightly below true center so character stays readable
-	stick.offset_left = -170
-	stick.offset_top = -40
-	stick.offset_right = 170
-	stick.offset_bottom = 300
+	stick.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+	stick.offset_left = -160
+	stick.offset_top = -360
+	stick.offset_right = 160
+	stick.offset_bottom = -40
 	stick.mouse_filter = Control.MOUSE_FILTER_STOP
 	root.add_child(stick)
 
@@ -269,7 +269,7 @@ func _build_toast_and_hint() -> void:
 	hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	hint_label.add_theme_font_size_override("font_size", 18)
 	hint_label.add_theme_color_override("font_color", Color(0.9, 0.86, 0.75, 0.55))
-	hint_label.text = "Drag center stick to move"
+	hint_label.text = "Drag lower stick to move"
 	root.add_child(hint_label)
 
 
@@ -293,7 +293,7 @@ func set_interact_prompt(show: bool, npc_name: String = "") -> void:
 		interact_button.text = "Talk"
 		hint_label.text = "Near %s — tap Talk" % npc_name
 	else:
-		hint_label.text = "Drag center stick to move"
+		hint_label.text = "Drag lower stick to move"
 
 
 func _refresh_stats() -> void:
@@ -473,47 +473,98 @@ func _add_menu_label(text: String) -> Label:
 
 
 func _populate_inventory(upgrade_mode: bool) -> void:
+	var grid := GridContainer.new()
+	grid.columns = 4
+	grid.add_theme_constant_override("h_separation", 12)
+	grid.add_theme_constant_override("v_separation", 12)
+	_menu_body.add_child(grid)
+
 	for item in GameState.inventory:
 		var def = ContentDB.get_item(item.item_id)
 		if def == null:
 			continue
-		var row := HBoxContainer.new()
-		row.add_theme_constant_override("separation", 10)
-		_menu_body.add_child(row)
-		var info := Label.new()
-		info.text = "%s  ·  %s  ·  x%d  +%d" % [def.name, ItemDefScript.rarity_name(def.rarity), item.quantity, item.upgrade_level]
-		info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		info.add_theme_font_size_override("font_size", 22)
-		info.add_theme_color_override("font_color", ItemDefScript.rarity_color(def.rarity))
-		row.add_child(info)
+		var cell := PanelContainer.new()
+		cell.custom_minimum_size = Vector2(210, 210)
+		var border := UiThemeScript.panel_glass(16)
+		border.border_color = ItemDefScript.rarity_color(def.rarity)
+		border.set_border_width_all(2)
+		cell.add_theme_stylebox_override("panel", border)
+		grid.add_child(cell)
+
+		var v := VBoxContainer.new()
+		v.add_theme_constant_override("separation", 6)
+		cell.add_child(v)
+
+		var icon := ColorRect.new()
+		icon.custom_minimum_size = Vector2(0, 70)
+		icon.color = def.icon_color
+		v.add_child(icon)
+
+		var title := Label.new()
+		title.text = def.name
+		title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		title.add_theme_font_size_override("font_size", 18)
+		title.add_theme_color_override("font_color", ItemDefScript.rarity_color(def.rarity))
+		v.add_child(title)
+
+		var meta := Label.new()
+		meta.text = "x%d  +%d" % [item.quantity, item.upgrade_level]
+		meta.add_theme_font_size_override("font_size", 16)
+		meta.add_theme_color_override("font_color", Color(0.85, 0.82, 0.75, 0.85))
+		v.add_child(meta)
+
+		var actions := HBoxContainer.new()
+		actions.add_theme_constant_override("separation", 4)
+		v.add_child(actions)
+
+		var inspect := Button.new()
+		inspect.text = "Info"
+		inspect.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		_style_button(inspect)
+		var captured_uid := item.uid
+		inspect.pressed.connect(func(): _inspect_item(captured_uid))
+		actions.add_child(inspect)
+
 		if def.kind == ItemDefScript.Kind.EQUIPMENT:
 			var eq := Button.new()
-			eq.text = "Equip"
+			eq.text = "Equip" if not upgrade_mode else "Select"
+			eq.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			_style_button(eq)
 			eq.pressed.connect(func():
-				GameState.equip_uid(item.uid)
-				AudioService.play_ui()
+				if upgrade_mode:
+					_selected_uid = captured_uid
+				else:
+					GameState.equip_uid(captured_uid)
+					AudioService.play_ui()
 				_rebuild_menu_page()
 			)
-			row.add_child(eq)
-			if upgrade_mode:
-				var up := Button.new()
-				up.text = "Select"
-				_style_button(up)
-				up.pressed.connect(func():
-					_selected_uid = item.uid
-					_rebuild_menu_page()
-				)
-				row.add_child(up)
+			actions.add_child(eq)
 		elif def.kind == ItemDefScript.Kind.CONSUMABLE:
 			var use := Button.new()
 			use.text = "Use"
+			use.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			_style_button(use)
 			use.pressed.connect(func():
-				GameState.use_consumable_uid(item.uid)
+				GameState.use_consumable_uid(captured_uid)
 				_rebuild_menu_page()
 			)
-			row.add_child(use)
+			actions.add_child(use)
+
+
+func _inspect_item(uid: String) -> void:
+	var item = GameState.find_item_by_uid(uid)
+	if item == null:
+		return
+	var def = ContentDB.get_item(item.item_id)
+	if def == null:
+		return
+	_toast("%s · %s · Lv%d · ATK%d DEF%d" % [
+		def.name,
+		ItemDefScript.rarity_name(def.rarity),
+		def.level_req,
+		def.attack + item.upgrade_level * 2,
+		def.defense + item.upgrade_level,
+	])
 
 
 func _populate_equipment() -> void:

@@ -204,6 +204,10 @@ func apply_damage(amount: int, is_critical: bool) -> void:
 		_hp_label.text = str(hp)
 	EventBus.damage_dealt.emit(amount, is_critical, global_position + Vector3(0, 1.0, 0))
 	AudioService.play_sfx(&"weapon_hit")
+	if _visual:
+		var tw := create_tween()
+		tw.tween_property(_visual, "scale", Vector3(1.15, 0.85, 1.15), 0.06)
+		tw.tween_property(_visual, "scale", Vector3.ONE, 0.1)
 	if state == State.IDLE:
 		state = State.CHASE
 	if hp <= 0:

@@ -1,6 +1,6 @@
 class_name MobileJoystick
 extends Control
-## Center-screen virtual stick: knob starts centered, drag direction = walk direction.
+## Bottom-center virtual stick: knob starts centered, drag direction = walk direction.
 
 signal joystick_updated(direction: Vector2)
 signal joystick_released
