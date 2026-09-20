@@ -18,7 +18,7 @@ func _ready() -> void:
 	follow_smoothing = GameConfig.CAMERA_FOLLOW_SMOOTHING
 	look_ahead = GameConfig.CAMERA_LOOK_AHEAD
 	projection = PROJECTION_PERSPECTIVE
-	fov = 42.0
+	fov = 48.0
 	current = true
 	add_to_group("player_camera")
 	if follow_target == null:
@@ -45,4 +45,4 @@ func _physics_process(delta: float) -> void:
 		desired += Vector3(randf_range(-1, 1), randf_range(-0.4, 0.4), randf_range(-1, 1)) * _shake
 		_shake = move_toward(_shake, 0.0, delta * 1.8)
 	global_position = global_position.lerp(desired, clampf(follow_smoothing * delta, 0.0, 1.0))
-	look_at(target_pos + Vector3(0.0, 0.75, 0.0), Vector3.UP)
+	look_at(target_pos + Vector3(0.0, 1.1, 0.0), Vector3.UP)

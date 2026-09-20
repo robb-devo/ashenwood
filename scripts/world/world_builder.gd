@@ -109,22 +109,50 @@ func _build_village() -> void:
 	for pos in [Vector3(-8.0, 0.35, 2.0), Vector3(8.2, 0.35, 2.4), Vector3(-2.0, 0.3, 9.5), Vector3(2.4, 0.3, 9.2)]:
 		village.add_child(PropFactoryScript.sphere(0.55, GameConfig.COLOR_FOLIAGE, pos))
 
-	_add_campfire(village, Vector3(0.0, 0.0, 2.5))
+	_add_campfire(village, Vector3(-5.5, 0.0, 6.0))
+	# Central landmark tree
+	_add_tree(village, Vector3(-2.5, 0, -1.5), 1.35)
+	# Blacksmith furnace + wood pile
+	village.add_child(PropFactoryScript.box(Vector3(1.6, 1.8, 1.2), Color("3a3a38"), Vector3(-8.2, 0.0, -6.2)))
+	village.add_child(PropFactoryScript.sphere(0.35, GameConfig.COLOR_FIRE, Vector3(-8.2, 1.9, -6.2)))
+	_add_zone_light(village, Vector3(-8.2, 2.2, -6.2), GameConfig.COLOR_FIRE, 1.4, 7.0)
+	village.add_child(PropFactoryScript.box(Vector3(1.4, 0.55, 0.9), GameConfig.COLOR_WOOD, Vector3(-11.5, 0.0, -5.5)))
+	village.add_child(PropFactoryScript.box(Vector3(1.1, 0.45, 0.7), GameConfig.COLOR_WOOD, Vector3(-12.2, 0.0, -4.8)))
+	# Market stand near merchant
+	village.add_child(PropFactoryScript.box(Vector3(2.4, 0.9, 1.2), Color("6a5538"), Vector3(8.5, 0.0, 0.5)))
+	village.add_child(PropFactoryScript.box(Vector3(2.6, 0.12, 1.4), Color("8a6a40"), Vector3(8.5, 1.0, 0.5)))
+	village.add_child(PropFactoryScript.box(Vector3(0.15, 1.6, 0.15), GameConfig.COLOR_WOOD, Vector3(7.4, 0.0, 0.0)))
+	village.add_child(PropFactoryScript.box(Vector3(0.15, 1.6, 0.15), GameConfig.COLOR_WOOD, Vector3(9.6, 0.0, 0.0)))
 	# Well
 	village.add_child(PropFactoryScript.cylinder(0.9, 0.7, Color("5a5a58"), Vector3(4.5, 0.0, 5.0)))
 	village.add_child(PropFactoryScript.cylinder(0.15, 1.4, GameConfig.COLOR_WOOD, Vector3(4.5, 0.0, 5.0), false))
-	# Benches
+	# Benches + gathering logs
 	village.add_child(PropFactoryScript.box(Vector3(1.6, 0.35, 0.45), GameConfig.COLOR_WOOD, Vector3(-2.8, 0.0, 5.2)))
 	village.add_child(PropFactoryScript.box(Vector3(1.6, 0.35, 0.45), GameConfig.COLOR_WOOD, Vector3(2.8, 0.0, 5.2)))
-	# Gardens
+	village.add_child(PropFactoryScript.box(Vector3(2.2, 0.4, 0.55), GameConfig.COLOR_WOOD, Vector3(0.0, 0.0, 4.2)))
+	# Gardens / flower patches
 	village.add_child(PropFactoryScript.box(Vector3(2.2, 0.15, 1.4), Color("3a5a38"), Vector3(-13.5, 0.0, 2.0)))
 	village.add_child(PropFactoryScript.sphere(0.35, Color("8a3a4a"), Vector3(-13.2, 0.4, 2.0)))
 	village.add_child(PropFactoryScript.sphere(0.3, Color("6a8a3a"), Vector3(-13.8, 0.35, 2.3)))
+	village.add_child(PropFactoryScript.box(Vector3(1.8, 0.12, 1.1), Color("3a5a38"), Vector3(12.5, 0.0, 4.0)))
+	village.add_child(PropFactoryScript.sphere(0.28, Color("c45a7a"), Vector3(12.2, 0.35, 4.0)))
+	village.add_child(PropFactoryScript.sphere(0.25, Color("d4a040"), Vector3(12.8, 0.32, 4.2)))
+	# Flag near elder
+	village.add_child(PropFactoryScript.cylinder(0.07, 3.2, GameConfig.COLOR_WOOD, Vector3(3.5, 0.0, -10.0), false))
+	village.add_child(PropFactoryScript.box(Vector3(1.1, 0.7, 0.08), Color("8a4a3a"), Vector3(4.1, 2.6, -10.0)))
+	# Chimney smoke puffs (static soft spheres)
+	village.add_child(PropFactoryScript.sphere(0.35, Color(0.7, 0.72, 0.7, 0.25), Vector3(-10.0, 5.0, -4.0)))
+	village.add_child(PropFactoryScript.sphere(0.28, Color(0.7, 0.72, 0.7, 0.18), Vector3(-9.7, 5.6, -3.7)))
 	# Signposts
 	village.add_child(PropFactoryScript.cylinder(0.08, 1.8, GameConfig.COLOR_WOOD, Vector3(-1.5, 0.0, -18.5), false))
 	village.add_child(PropFactoryScript.box(Vector3(1.2, 0.4, 0.1), Color("6a5538"), Vector3(-1.5, 1.5, -18.5)))
 	village.add_child(PropFactoryScript.cylinder(0.08, 1.8, GameConfig.COLOR_WOOD, Vector3(18.5, 0.0, -1.0), false))
 	village.add_child(PropFactoryScript.box(Vector3(1.2, 0.4, 0.1), Color("6a5538"), Vector3(18.5, 1.5, -1.0)))
+	# Village entrance sign
+	_add_label(village, "Ashenwood", Vector3(0.0, 3.4, 16.5))
+	village.add_child(PropFactoryScript.box(Vector3(0.25, 2.4, 0.25), GameConfig.COLOR_WOOD, Vector3(-2.2, 0.0, 16.5)))
+	village.add_child(PropFactoryScript.box(Vector3(0.25, 2.4, 0.25), GameConfig.COLOR_WOOD, Vector3(2.2, 0.0, 16.5)))
+	village.add_child(PropFactoryScript.box(Vector3(4.6, 0.35, 0.25), GameConfig.COLOR_WOOD, Vector3(0.0, 2.2, 16.5)))
 	# Locked / distant road hint west
 	village.add_child(PropFactoryScript.box(Vector3(0.3, 1.4, 2.5), GameConfig.COLOR_WOOD, Vector3(-22.0, 0.0, 0.0)))
 	village.add_child(PropFactoryScript.box(Vector3(2.0, 0.25, 0.25), GameConfig.COLOR_WOOD, Vector3(-22.0, 1.1, 0.0)))
@@ -178,22 +206,11 @@ func _build_forest() -> void:
 	for spot in tree_spots:
 		_add_tree(forest, spot, 1.15)
 
-	# Rocks / bushes / spawn clearings
-	for rock in [Vector3(-5, 0, -35), Vector3(6, 0, -43), Vector3(-9, 0, -50), Vector3(11, 0, -39), Vector3(-14, 0, -58), Vector3(15, 0, -36)]:
-		forest.add_child(PropFactoryScript.box(Vector3(1.3, 0.8, 1.1), Color("4d524c"), rock))
-	for bush in [Vector3(-2, 0.35, -33), Vector3(3, 0.35, -41), Vector3(-7, 0.35, -47), Vector3(9, 0.3, -55), Vector3(-11, 0.3, -30), Vector3(6, 0.35, -58)]:
-		forest.add_child(PropFactoryScript.sphere(0.7, Color("1f3a28"), bush))
-
-	# Fallen logs + mushrooms
-	var log_a := PropFactoryScript.box(Vector3(3.2, 0.45, 0.55), Color("5a4030"), Vector3(-4, 0.0, -37))
-	log_a.rotation.y = 0.4
-	forest.add_child(log_a)
-	var log_b := PropFactoryScript.box(Vector3(2.6, 0.4, 0.5), Color("4a3828"), Vector3(7, 0.0, -49))
-	log_b.rotation.y = -0.6
-	forest.add_child(log_b)
-	for m in [Vector3(-3.2, 0.15, -36.5), Vector3(-3.6, 0.12, -37.2), Vector3(6.4, 0.12, -48.5), Vector3(1.5, 0.12, -44)]:
-		forest.add_child(PropFactoryScript.cylinder(0.12, 0.18, Color("c45a4a"), m, false))
-		forest.add_child(PropFactoryScript.sphere(0.18, Color("e07060"), m + Vector3(0, 0.2, 0)))
+	# Composition clusters instead of sparse singles
+	_add_forest_cluster(forest, Vector3(-5, 0, -35))
+	_add_forest_cluster(forest, Vector3(7, 0, -48))
+	_add_forest_cluster(forest, Vector3(-12, 0, -52))
+	_add_forest_cluster(forest, Vector3(3, 0, -58))
 
 	# Soft ambient lights in clearings
 	_add_zone_light(forest, Vector3(-6, 3.5, -40), Color("7aa889"), 0.55, 12.0)
@@ -263,6 +280,13 @@ func _build_cemetery() -> void:
 	_add_zone_light(cemetery, Vector3(44, 4.0, -6), Color("6e7ea0"), 0.7, 16.0)
 	_add_fog_bank(cemetery, Vector3(44, 1.2, -6), 10.0)
 	_add_fog_bank(cemetery, Vector3(38, 1.0, 2), 7.0)
+	_add_fog_bank(cemetery, Vector3(52, 1.1, -14), 8.0)
+
+	# Broken statue landmark
+	cemetery.add_child(PropFactoryScript.box(Vector3(1.2, 0.5, 1.2), Color("4a4844"), Vector3(40.0, 0.0, -8.0)))
+	cemetery.add_child(PropFactoryScript.cylinder(0.35, 1.6, Color("5a5854"), Vector3(40.0, 0.5, -8.0), false))
+	cemetery.add_child(PropFactoryScript.sphere(0.38, Color("6a6862"), Vector3(40.0, 2.3, -8.0)))
+	cemetery.add_child(PropFactoryScript.box(Vector3(0.9, 0.25, 0.25), Color("4a4844"), Vector3(40.6, 1.8, -8.0)))
 
 	# Cemetery gate at village approach
 	var gate := Node3D.new()
@@ -367,7 +391,8 @@ func _add_campfire(parent: Node3D, position: Vector3) -> void:
 	fire.position = position
 	parent.add_child(fire)
 	fire.add_child(PropFactoryScript.cylinder(0.7, 0.25, Color("3a3a38"), Vector3.ZERO, false))
-	fire.add_child(PropFactoryScript.sphere(0.35, GameConfig.COLOR_FIRE, Vector3(0.0, 0.55, 0.0)))
+	fire.add_child(PropFactoryScript.sphere(0.35, Color("ff6a2a"), Vector3(0.0, 0.55, 0.0)))
+	fire.add_child(PropFactoryScript.sphere(0.18, Color("ffd06a"), Vector3(0.0, 0.85, 0.05)))
 	var light := OmniLight3D.new()
 	light.light_color = GameConfig.COLOR_FIRE
 	light.light_energy = 2.0
@@ -399,6 +424,20 @@ func _add_fog_bank(parent: Node3D, position: Vector3, radius: float) -> void:
 	fog.position = position
 	fog.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	parent.add_child(fog)
+
+
+func _add_forest_cluster(parent: Node3D, origin: Vector3) -> void:
+	_add_tree(parent, origin, 1.2)
+	parent.add_child(PropFactoryScript.box(Vector3(1.1, 0.7, 0.95), Color("4d524c"), origin + Vector3(1.4, 0, 0.6)))
+	parent.add_child(PropFactoryScript.sphere(0.55, Color("1f3a28"), origin + Vector3(-1.1, 0.3, 0.8)))
+	parent.add_child(PropFactoryScript.sphere(0.4, Color("254032"), origin + Vector3(0.6, 0.25, -1.0)))
+	var log := PropFactoryScript.box(Vector3(2.4, 0.35, 0.45), Color("5a4030"), origin + Vector3(-0.4, 0, 1.5))
+	log.rotation.y = 0.5
+	parent.add_child(log)
+	for i in 3:
+		var mpos := origin + Vector3(-0.8 + i * 0.35, 0.12, 1.3)
+		parent.add_child(PropFactoryScript.cylinder(0.1, 0.16, Color("c45a4a"), mpos, false))
+		parent.add_child(PropFactoryScript.sphere(0.15, Color("e07060"), mpos + Vector3(0, 0.18, 0)))
 
 
 func _add_label(parent: Node3D, text: String, position: Vector3) -> void:

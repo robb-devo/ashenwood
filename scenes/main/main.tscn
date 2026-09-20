@@ -50,9 +50,9 @@ script = ExtResource("6_spawner")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 4)
 
 [node name="PlayerCamera" type="Camera3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 0.573576, 0.819152, 0, -0.819152, 0.573576, 0, 16, 14)
+transform = Transform3D(1, 0, 0, 0, 0.6691306, 0.7431448, 0, -0.7431448, 0.6691306, 0, 12, 11)
 current = true
-fov = 42.0
+fov = 48.0
 script = ExtResource("4_camera")
 follow_target = NodePath("../Player")
 

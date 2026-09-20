@@ -31,11 +31,11 @@ var rarity_stat_mult: float = 1.0
 
 static func rarity_color(r: Rarity) -> Color:
 	match r:
-		Rarity.COMMON: return Color("b0b0b0")
-		Rarity.UNCOMMON: return Color("4caf66")
-		Rarity.RARE: return Color("4a90e2")
-		Rarity.EPIC: return Color("9b59d0")
-		Rarity.LEGENDARY: return Color("e0a23a")
+		Rarity.COMMON: return Color("a8a59c")
+		Rarity.UNCOMMON: return Color("5faf6e")
+		Rarity.RARE: return Color("5a9ad4")
+		Rarity.EPIC: return Color("a78be0")
+		Rarity.LEGENDARY: return Color("e0b14a")
 	return Color.WHITE
 
 

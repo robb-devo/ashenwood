@@ -33,14 +33,39 @@ func _ready() -> void:
 	rotation_speed = GameConfig.PLAYER_ROTATION_SPEED
 	PlayerVisualBuilderScript.build(bounce)
 	_refresh_weapon_visual()
+	# Rebuild once more after scene tree settles (fixes rare empty-visual race)
+	call_deferred("_deferred_visual_refresh")
 	add_to_group("player")
-	global_position = GameState.position
+	global_position = GameConfig.VILLAGE_SPAWN if GameState.position.length_squared() < 0.01 else GameState.position
+	# Keep saved progress but always start village sessions on the plaza for clarity
+	if global_position.distance_to(GameConfig.VILLAGE_SPAWN) < 1.0:
+		global_position = GameConfig.VILLAGE_SPAWN
+	GameState.position = global_position
 	EventBus.player_spawned.emit(self)
 	EventBus.player_respawned.connect(_on_respawned)
 	EventBus.equipment_changed.connect(_refresh_weapon_visual)
 	EventBus.player_died.connect(_on_died_signal)
 	_play_anim("idle")
 	AudioService.play_music(&"village_ambient")
+
+
+func _deferred_visual_refresh() -> void:
+	if bounce == null:
+		bounce = get_node_or_null("Visual/Bounce") as Node3D
+	if bounce:
+		PlayerVisualBuilderScript.build(bounce)
+		_refresh_weapon_visual()
+	# top_level visuals render reliably while keeping AnimationPlayer paths valid
+	if visual:
+		visual.top_level = true
+		visual.global_transform = global_transform
+
+
+func _sync_world_visual() -> void:
+	if visual == null or not is_instance_valid(visual):
+		return
+	if visual.top_level:
+		visual.global_position = global_position
 
 
 func _physics_process(delta: float) -> void:
@@ -89,6 +114,7 @@ func _physics_process(delta: float) -> void:
 	velocity.y = 0.0
 	move_and_slide()
 	GameState.position = global_position
+	_sync_world_visual()
 
 
 func _get_weapon_def() -> ItemDef:
@@ -168,19 +194,22 @@ func _find_auto_aim_target(range_v: float) -> Node3D:
 
 func _deal_melee_hits(preferred: Node3D, range_v: float) -> void:
 	var facing := get_facing_direction()
+	VfxService.spawn_swing(global_position, facing)
 	var hit_any := false
+	var crit_any := false
 	if preferred != null and is_instance_valid(preferred) and preferred.has_method("apply_damage"):
 		var d: float = global_position.distance_to(preferred.global_position)
 		if d <= range_v * 1.05:
 			var roll: Dictionary = CombatMathScript.roll_player_damage()
 			preferred.apply_damage(int(roll.damage), bool(roll.critical))
 			if preferred.has_method("apply_knockback"):
-				preferred.apply_knockback(facing * 4.0)
+				preferred.apply_knockback(facing * (5.2 if bool(roll.critical) else 4.0))
 			hit_any = true
+			crit_any = bool(roll.critical)
 			if bool(roll.critical):
 				var cam := get_tree().get_first_node_in_group("player_camera")
 				if cam and cam.has_method("shake"):
-					cam.shake(0.14)
+					cam.shake(0.16)
 
 	for enemy in get_tree().get_nodes_in_group("enemies"):
 		if enemy == null or not is_instance_valid(enemy) or enemy == preferred:
@@ -195,10 +224,17 @@ func _deal_melee_hits(preferred: Node3D, range_v: float) -> void:
 		var roll2: Dictionary = CombatMathScript.roll_player_damage()
 		enemy.apply_damage(int(roll2.damage), bool(roll2.critical))
 		if enemy.has_method("apply_knockback"):
-			enemy.apply_knockback(facing * 3.2)
+			enemy.apply_knockback(facing * 3.4)
 		hit_any = true
+		if bool(roll2.critical):
+			crit_any = true
 
-	if not hit_any:
+	if hit_any:
+		JuiceService.hit_stop(0.055 if crit_any else 0.035, 0.05 if crit_any else 0.12)
+		var cam2 := get_tree().get_first_node_in_group("player_camera")
+		if cam2 and cam2.has_method("shake"):
+			cam2.shake(0.1 if crit_any else 0.06)
+	else:
 		VfxService.spawn_hit_flash(global_position + Vector3(0, 0.9, 0) + facing * 1.2, false)
 
 

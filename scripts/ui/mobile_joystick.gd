@@ -1,20 +1,24 @@
 class_name MobileJoystick
 extends Control
-## Bottom-center virtual stick: knob starts centered, drag direction = walk direction.
+## Archero-style stick: idle at bottom-center, activates anywhere in a large touch zone.
+## Touch relocates the stick under your finger; drag from that origin to move.
 
 signal joystick_updated(direction: Vector2)
 signal joystick_released
 
 @export var max_radius: float = 120.0
 @export var deadzone: float = 0.1
+@export var edge_margin: float = 130.0
 
+var _visual: Control
 var _base: Panel
 var _ring: Panel
 var _knob: Panel
 var _active_touch_index: int = -1
 var _output: Vector2 = Vector2.ZERO
-var _idle_modulate := Color(1, 1, 1, 0.42)
-var _active_modulate := Color(1, 1, 1, 0.92)
+var _origin: Vector2 = Vector2.ZERO
+var _idle_modulate := Color(1, 1, 1, 0.34)
+var _active_modulate := Color(1, 1, 1, 0.96)
 
 
 func _ready() -> void:
@@ -22,85 +26,83 @@ func _ready() -> void:
 	deadzone = GameConfig.JOYSTICK_DEADZONE
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	_build_visuals()
-	_center_knob()
-	modulate = _idle_modulate
+	call_deferred("_reset_to_idle")
 
 
 func _build_visuals() -> void:
-	# Outer soft ring
+	_visual = Control.new()
+	_visual.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_visual.custom_minimum_size = Vector2(300, 300)
+	_visual.size = Vector2(300, 300)
+	add_child(_visual)
+
 	_ring = Panel.new()
 	_ring.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_ring.set_anchors_preset(Control.PRESET_CENTER)
-	_ring.offset_left = -150
-	_ring.offset_top = -150
-	_ring.offset_right = 150
-	_ring.offset_bottom = 150
+	_ring.offset_left = -148
+	_ring.offset_top = -148
+	_ring.offset_right = 148
+	_ring.offset_bottom = 148
 	var ring_style := StyleBoxFlat.new()
-	ring_style.bg_color = Color(0.08, 0.1, 0.12, 0.18)
-	ring_style.border_color = Color(0.86, 0.74, 0.48, 0.22)
+	ring_style.bg_color = Color(0.08, 0.11, 0.09, 0.18)
+	ring_style.border_color = Color(0.83, 0.68, 0.35, 0.18)
 	ring_style.set_border_width_all(2)
 	ring_style.set_corner_radius_all(160)
 	_ring.add_theme_stylebox_override("panel", ring_style)
-	add_child(_ring)
+	_visual.add_child(_ring)
 
 	_base = Panel.new()
 	_base.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_base.set_anchors_preset(Control.PRESET_CENTER)
-	_base.offset_left = -118
-	_base.offset_top = -118
-	_base.offset_right = 118
-	_base.offset_bottom = 118
+	_base.offset_left = -112
+	_base.offset_top = -112
+	_base.offset_right = 112
+	_base.offset_bottom = 112
 	var base_style := StyleBoxFlat.new()
-	base_style.bg_color = Color(0.06, 0.08, 0.1, 0.45)
-	base_style.border_color = Color(0.9, 0.78, 0.5, 0.55)
-	base_style.set_border_width_all(3)
-	base_style.set_corner_radius_all(140)
+	base_style.bg_color = Color(0.08, 0.11, 0.09, 0.52)
+	base_style.border_color = Color(0.83, 0.68, 0.35, 0.55)
+	base_style.set_border_width_all(4)
+	base_style.set_corner_radius_all(130)
 	base_style.shadow_color = Color(0, 0, 0, 0.35)
-	base_style.shadow_size = 12
+	base_style.shadow_size = 14
 	_base.add_theme_stylebox_override("panel", base_style)
-	add_child(_base)
+	_visual.add_child(_base)
 
-	# Crosshair guides
-	for axis in [true, false]:
-		var guide := ColorRect.new()
-		guide.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		guide.color = Color(0.9, 0.82, 0.6, 0.14)
-		_base.add_child(guide)
-		if axis:
-			guide.set_anchors_preset(Control.PRESET_CENTER)
-			guide.offset_left = -1.5
-			guide.offset_top = -70
-			guide.offset_right = 1.5
-			guide.offset_bottom = 70
-		else:
-			guide.set_anchors_preset(Control.PRESET_CENTER)
-			guide.offset_left = -70
-			guide.offset_top = -1.5
-			guide.offset_right = 70
-			guide.offset_bottom = 1.5
+	var inner := Panel.new()
+	inner.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	inner.set_anchors_preset(Control.PRESET_CENTER)
+	inner.offset_left = -70
+	inner.offset_top = -70
+	inner.offset_right = 70
+	inner.offset_bottom = 70
+	var inner_style := StyleBoxFlat.new()
+	inner_style.bg_color = Color(0.14, 0.18, 0.15, 0.32)
+	inner_style.set_corner_radius_all(80)
+	inner.add_theme_stylebox_override("panel", inner_style)
+	_base.add_child(inner)
 
 	_knob = Panel.new()
 	_knob.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_knob.custom_minimum_size = Vector2(92, 92)
-	_knob.size = Vector2(92, 92)
+	_knob.custom_minimum_size = Vector2(88, 88)
+	_knob.size = Vector2(88, 88)
 	var knob_style := StyleBoxFlat.new()
-	knob_style.bg_color = Color(0.9, 0.78, 0.5, 0.88)
-	knob_style.border_color = Color(1.0, 0.94, 0.78, 0.9)
-	knob_style.set_border_width_all(3)
-	knob_style.set_corner_radius_all(60)
-	knob_style.shadow_color = Color(0.9, 0.7, 0.3, 0.35)
-	knob_style.shadow_size = 10
+	knob_style.bg_color = Color(0.83, 0.68, 0.35, 0.92)
+	knob_style.border_color = Color(0.96, 0.88, 0.62, 0.95)
+	knob_style.set_border_width_all(4)
+	knob_style.set_corner_radius_all(50)
+	knob_style.shadow_color = Color(0.7, 0.5, 0.15, 0.35)
+	knob_style.shadow_size = 12
 	_knob.add_theme_stylebox_override("panel", knob_style)
-	_base.add_child(_knob)
+	_visual.add_child(_knob)
+
+	modulate = _idle_modulate
 
 
 func _gui_input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch:
 		var touch := event as InputEventScreenTouch
 		if touch.pressed and _active_touch_index == -1:
-			_active_touch_index = touch.index
-			modulate = _active_modulate
-			_update_from_local_pos(touch.position)
+			_begin(touch.index, touch.position)
 			accept_event()
 		elif not touch.pressed and touch.index == _active_touch_index:
 			_release()
@@ -115,9 +117,7 @@ func _gui_input(event: InputEvent) -> void:
 		if mouse.button_index != MOUSE_BUTTON_LEFT:
 			return
 		if mouse.pressed and _active_touch_index == -1:
-			_active_touch_index = 0
-			modulate = _active_modulate
-			_update_from_local_pos(mouse.position)
+			_begin(0, mouse.position)
 			accept_event()
 		elif not mouse.pressed and _active_touch_index == 0:
 			_release()
@@ -127,12 +127,48 @@ func _gui_input(event: InputEvent) -> void:
 		accept_event()
 
 
+func _begin(touch_index: int, local_pos: Vector2) -> void:
+	_active_touch_index = touch_index
+	_origin = _clamp_origin(local_pos)
+	_place_visual_at(_origin)
+	_center_knob()
+	modulate = _active_modulate
+	_update_from_local_pos(local_pos)
+
+
+func _clamp_origin(pos: Vector2) -> Vector2:
+	var m := edge_margin
+	return Vector2(
+		clampf(pos.x, m, maxf(m, size.x - m)),
+		clampf(pos.y, m, maxf(m, size.y - m))
+	)
+
+
+func _place_visual_at(center: Vector2) -> void:
+	if _visual == null:
+		return
+	_visual.position = center - _visual.size * 0.5
+
+
+func _idle_center() -> Vector2:
+	# Bottom-center resting spot inside the large pad.
+	return Vector2(size.x * 0.5, size.y * 0.62)
+
+
+func _reset_to_idle() -> void:
+	_origin = _idle_center()
+	_place_visual_at(_origin)
+	_center_knob()
+	modulate = _idle_modulate
+
+
 func _update_from_local_pos(local_pos: Vector2) -> void:
-	var center := size * 0.5
-	var offset := local_pos - center
+	var offset := local_pos - _origin
 	if offset.length() > max_radius:
 		offset = offset.limit_length(max_radius)
-	_knob.position = (_base.size * 0.5) + offset - _knob.size * 0.5
+
+	if _knob and _visual:
+		_knob.position = _visual.size * 0.5 + offset - _knob.size * 0.5
 
 	var strength := offset.length() / max_radius
 	if strength < deadzone:
@@ -147,17 +183,16 @@ func _release() -> void:
 	_active_touch_index = -1
 	_output = Vector2.ZERO
 	InputService.clear_move_vector()
-	_center_knob()
-	modulate = _idle_modulate
+	_reset_to_idle()
 	joystick_released.emit()
 
 
 func _center_knob() -> void:
-	if _base == null or _knob == null:
+	if _visual == null or _knob == null:
 		return
-	_knob.position = _base.size * 0.5 - _knob.size * 0.5
+	_knob.position = _visual.size * 0.5 - _knob.size * 0.5
 
 
 func _notification(what: int) -> void:
-	if what == NOTIFICATION_RESIZED:
-		_center_knob()
+	if what == NOTIFICATION_RESIZED and _active_touch_index < 0:
+		_reset_to_idle()

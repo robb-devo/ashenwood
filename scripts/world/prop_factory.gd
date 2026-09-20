@@ -9,6 +9,8 @@ static func make_material(color: Color, roughness: float = 0.85) -> StandardMate
 	mat.albedo_color = color
 	mat.roughness = roughness
 	mat.metallic = 0.0
+	if color.a < 0.99:
+		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	return mat
 
 

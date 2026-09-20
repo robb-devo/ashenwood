@@ -118,6 +118,9 @@ func _mat(color: Color) -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
 	m.albedo_color = color
 	m.roughness = 0.78
+	m.emission_enabled = true
+	m.emission = color * 0.12
+	m.emission_energy_multiplier = 0.4
 	return m
 
 
@@ -283,11 +286,23 @@ func apply_damage(amount: int, is_critical: bool) -> void:
 		_hp_label.text = str(hp)
 	EventBus.damage_dealt.emit(amount, is_critical, global_position + Vector3(0, 1.0, 0))
 	AudioService.play_sfx(&"weapon_hit" if not is_critical else &"critical", 1.15 if is_critical else 1.0)
+	AudioService.pulse_haptic(0.18 if not is_critical else 0.32)
 	if def.elite:
 		EventBus.boss_hp_changed.emit(enemy_id, hp, max_hp)
+	# Flash white briefly
 	if _visual:
+		for c in _visual.get_children():
+			if c is MeshInstance3D and c.material_override:
+				var mat := c.material_override as StandardMaterial3D
+				if mat:
+					var orig := mat.albedo_color
+					mat.albedo_color = Color(1.0, 1.0, 1.0)
+					get_tree().create_timer(0.05).timeout.connect(func():
+						if is_instance_valid(mat):
+							mat.albedo_color = orig
+					)
 		var tw := create_tween()
-		tw.tween_property(_visual, "scale", Vector3(1.18, 0.82, 1.18), 0.05)
+		tw.tween_property(_visual, "scale", Vector3(1.22, 0.78, 1.22), 0.04)
 		tw.tween_property(_visual, "scale", Vector3.ONE, 0.1)
 	if state == State.IDLE or state == State.PATROL:
 		state = State.CHASE
@@ -298,15 +313,27 @@ func apply_damage(amount: int, is_critical: bool) -> void:
 func _die() -> void:
 	state = State.DEAD
 	_clear_telegraph()
+	collision_layer = 0
+	collision_mask = 0
 	EventBus.enemy_died.emit(enemy_id, global_position)
 	if def.elite:
 		EventBus.boss_defeated.emit(enemy_id)
 		AudioService.play_sfx(&"quest_complete")
 	GameState.add_xp(def.xp_reward)
-	_spawn_loot(randi_range(def.gold_min, def.gold_max))
 	AudioService.play_sfx(&"enemy_death")
-	VfxService.spawn_hit_flash(global_position, def.elite)
-	queue_free()
+	VfxService.spawn_death_burst(global_position, def.body_color if def else Color("ffe08a"))
+	if _hp_label:
+		_hp_label.visible = false
+	if _visual:
+		var tw := create_tween()
+		tw.tween_property(_visual, "scale", Vector3(1.35, 0.25, 1.35), 0.14)
+		tw.tween_callback(func():
+			_spawn_loot(randi_range(def.gold_min, def.gold_max))
+			queue_free()
+		)
+	else:
+		_spawn_loot(randi_range(def.gold_min, def.gold_max))
+		queue_free()
 
 
 func _spawn_loot(gold_amount: int) -> void:

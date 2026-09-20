@@ -1,6 +1,6 @@
 # ASHENWOOD
 
-Portrait mobile fantasy action RPG vertical slice (Godot 4.7).
+Portrait mobile fantasy action RPG (Godot 4.7).
 
 ## Download APK
 https://github.com/robb-devo/ashenwood/releases/latest
@@ -10,7 +10,7 @@ https://github.com/robb-devo/ashenwood/releases/latest
 - PC: `PLAY_ON_PC.bat` (Godot 4.7)
 
 ## Controls
-- Lower-left stick Â· Attack lower-right Â· Talk near NPCs Â· Menu
+- Lower-left stick · Attack lower-right · Heal · Talk near NPCs · Bag menu
 
-## Slice
-Title â†’ Village â†’ Woods â†’ Cemetery â†’ Combat (melee/bow/wand) â†’ Bandit + Gravekeeper boss telegraphs â†’ Loot/XP/Gear/Quests/Save
+## v0.7
+Full commercial UI redesign — HUD, menus, dialogue, rewards, title.

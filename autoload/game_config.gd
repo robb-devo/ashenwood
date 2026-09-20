@@ -16,10 +16,10 @@ const PLAYER_ACCELERATION := 28.0
 const PLAYER_FRICTION := 32.0
 const PLAYER_ROTATION_SPEED := 14.0
 
-## Camera.
-const CAMERA_DISTANCE := 14.0
-const CAMERA_HEIGHT := 16.0
-const CAMERA_PITCH_DEG := -55.0
+## Camera — more isometric, less top-down so characters read clearly.
+const CAMERA_DISTANCE := 11.0
+const CAMERA_HEIGHT := 12.0
+const CAMERA_PITCH_DEG := -48.0
 const CAMERA_FOLLOW_SMOOTHING := 8.0
 const CAMERA_LOOK_AHEAD := 1.25
 
