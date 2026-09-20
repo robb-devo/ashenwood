@@ -110,6 +110,39 @@ func _build_village() -> void:
 		village.add_child(PropFactoryScript.sphere(0.55, GameConfig.COLOR_FOLIAGE, pos))
 
 	_add_campfire(village, Vector3(0.0, 0.0, 2.5))
+	# Well
+	village.add_child(PropFactoryScript.cylinder(0.9, 0.7, Color("5a5a58"), Vector3(4.5, 0.0, 5.0)))
+	village.add_child(PropFactoryScript.cylinder(0.15, 1.4, GameConfig.COLOR_WOOD, Vector3(4.5, 0.0, 5.0), false))
+	# Benches
+	village.add_child(PropFactoryScript.box(Vector3(1.6, 0.35, 0.45), GameConfig.COLOR_WOOD, Vector3(-2.8, 0.0, 5.2)))
+	village.add_child(PropFactoryScript.box(Vector3(1.6, 0.35, 0.45), GameConfig.COLOR_WOOD, Vector3(2.8, 0.0, 5.2)))
+	# Gardens
+	village.add_child(PropFactoryScript.box(Vector3(2.2, 0.15, 1.4), Color("3a5a38"), Vector3(-13.5, 0.0, 2.0)))
+	village.add_child(PropFactoryScript.sphere(0.35, Color("8a3a4a"), Vector3(-13.2, 0.4, 2.0)))
+	village.add_child(PropFactoryScript.sphere(0.3, Color("6a8a3a"), Vector3(-13.8, 0.35, 2.3)))
+	# Signposts
+	village.add_child(PropFactoryScript.cylinder(0.08, 1.8, GameConfig.COLOR_WOOD, Vector3(-1.5, 0.0, -18.5), false))
+	village.add_child(PropFactoryScript.box(Vector3(1.2, 0.4, 0.1), Color("6a5538"), Vector3(-1.5, 1.5, -18.5)))
+	village.add_child(PropFactoryScript.cylinder(0.08, 1.8, GameConfig.COLOR_WOOD, Vector3(18.5, 0.0, -1.0), false))
+	village.add_child(PropFactoryScript.box(Vector3(1.2, 0.4, 0.1), Color("6a5538"), Vector3(18.5, 1.5, -1.0)))
+	# Locked / distant road hint west
+	village.add_child(PropFactoryScript.box(Vector3(0.3, 1.4, 2.5), GameConfig.COLOR_WOOD, Vector3(-22.0, 0.0, 0.0)))
+	village.add_child(PropFactoryScript.box(Vector3(2.0, 0.25, 0.25), GameConfig.COLOR_WOOD, Vector3(-22.0, 1.1, 0.0)))
+	_add_label(village, "Road Closed", Vector3(-22.0, 2.4, 0.0))
+
+	# Distant mountains / castle silhouette (world tease)
+	village.add_child(PropFactoryScript.box(Vector3(18, 8, 4), Color("1a2228"), Vector3(-8, 2.0, -70)))
+	village.add_child(PropFactoryScript.box(Vector3(10, 12, 3), Color("161c22"), Vector3(6, 3.0, -72)))
+	village.add_child(PropFactoryScript.box(Vector3(3, 5, 3), Color("12181e"), Vector3(4, 10.0, -72)))
+	_add_label(village, "??? Far Peaks", Vector3(0.0, 14.0, -68.0))
+
+	# Extra cottages / life
+	_add_building(village, "CottageC", Vector3(14.5, 0.0, 12.5), Vector3(4.2, 3.0, 3.8), Color("5e5044"))
+	_add_building(village, "CottageD", Vector3(-14.0, 0.0, 11.0), Vector3(4.0, 2.9, 3.6), Color("625448"))
+	village.add_child(PropFactoryScript.box(Vector3(0.9, 0.7, 0.7), Color("6f5d45"), Vector3(-9.5, 0.0, -6.5)))
+	village.add_child(PropFactoryScript.box(Vector3(0.7, 0.55, 0.65), Color("7a6548"), Vector3(9.2, 0.0, 4.5)))
+	_add_lamp(village, Vector3(0.0, 0.0, 10.5))
+	_add_lamp(village, Vector3(-12.0, 0.0, -8.0))
 
 	# Village trees (softer ring)
 	for spot in [
@@ -146,14 +179,30 @@ func _build_forest() -> void:
 		_add_tree(forest, spot, 1.15)
 
 	# Rocks / bushes / spawn clearings
-	for rock in [Vector3(-5, 0, -35), Vector3(6, 0, -43), Vector3(-9, 0, -50), Vector3(11, 0, -39)]:
+	for rock in [Vector3(-5, 0, -35), Vector3(6, 0, -43), Vector3(-9, 0, -50), Vector3(11, 0, -39), Vector3(-14, 0, -58), Vector3(15, 0, -36)]:
 		forest.add_child(PropFactoryScript.box(Vector3(1.3, 0.8, 1.1), Color("4d524c"), rock))
-	for bush in [Vector3(-2, 0.35, -33), Vector3(3, 0.35, -41), Vector3(-7, 0.35, -47), Vector3(9, 0.3, -55)]:
+	for bush in [Vector3(-2, 0.35, -33), Vector3(3, 0.35, -41), Vector3(-7, 0.35, -47), Vector3(9, 0.3, -55), Vector3(-11, 0.3, -30), Vector3(6, 0.35, -58)]:
 		forest.add_child(PropFactoryScript.sphere(0.7, Color("1f3a28"), bush))
+
+	# Fallen logs + mushrooms
+	var log_a := PropFactoryScript.box(Vector3(3.2, 0.45, 0.55), Color("5a4030"), Vector3(-4, 0.0, -37))
+	log_a.rotation.y = 0.4
+	forest.add_child(log_a)
+	var log_b := PropFactoryScript.box(Vector3(2.6, 0.4, 0.5), Color("4a3828"), Vector3(7, 0.0, -49))
+	log_b.rotation.y = -0.6
+	forest.add_child(log_b)
+	for m in [Vector3(-3.2, 0.15, -36.5), Vector3(-3.6, 0.12, -37.2), Vector3(6.4, 0.12, -48.5), Vector3(1.5, 0.12, -44)]:
+		forest.add_child(PropFactoryScript.cylinder(0.12, 0.18, Color("c45a4a"), m, false))
+		forest.add_child(PropFactoryScript.sphere(0.18, Color("e07060"), m + Vector3(0, 0.2, 0)))
 
 	# Soft ambient lights in clearings
 	_add_zone_light(forest, Vector3(-6, 3.5, -40), Color("7aa889"), 0.55, 12.0)
 	_add_zone_light(forest, Vector3(8, 3.5, -50), Color("6f9a7d"), 0.5, 11.0)
+
+	# Mysterious cave mouth (west fringe)
+	forest.add_child(PropFactoryScript.box(Vector3(4.5, 3.2, 2.2), Color("2a2e2c"), Vector3(-24, 0, -42)))
+	forest.add_child(PropFactoryScript.box(Vector3(2.2, 2.0, 0.4), Color("121614"), Vector3(-24, 0.4, -40.6)))
+	_add_label(forest, "Sealed Cave", Vector3(-24, 4.2, -42))
 
 	_add_label(forest, "Whispering Woods", Vector3(0.0, 5.0, -42.0))
 
@@ -177,25 +226,54 @@ func _build_cemetery() -> void:
 		Vector3(34, 0, -6), Vector3(38, 0, -10), Vector3(42, 0, -4), Vector3(46, 0, -12),
 		Vector3(36, 0, 2), Vector3(44, 0, 0), Vector3(50, 0, -8), Vector3(40, 0, -16),
 		Vector3(48, 0, -18), Vector3(52, 0, -2), Vector3(33, 0, -14), Vector3(55, 0, -14),
+		Vector3(37, 0, -18), Vector3(53, 0, 4), Vector3(41, 0, 6), Vector3(47, 0, -20),
 	]
 	for g in graves:
 		_add_gravestone(cemetery, g)
 
+	# Central grave (boss arena marker)
+	cemetery.add_child(PropFactoryScript.box(Vector3(2.4, 0.35, 1.6), Color("3a3a38"), Vector3(46.0, 0.0, -6.0)))
+	cemetery.add_child(PropFactoryScript.box(Vector3(1.1, 1.8, 0.35), Color("5a5a58"), Vector3(46.0, 0.0, -6.8)))
+	cemetery.add_child(PropFactoryScript.box(Vector3(1.4, 0.35, 0.45), Color("4d4d4b"), Vector3(46.0, 1.6, -6.8)))
+	_add_label(cemetery, "Keeper's Grave", Vector3(46.0, 3.6, -6.0))
+
+	# Small shrine
+	cemetery.add_child(PropFactoryScript.box(Vector3(1.6, 0.4, 1.2), Color("4a4844"), Vector3(34.0, 0.0, 4.0)))
+	cemetery.add_child(PropFactoryScript.box(Vector3(0.35, 1.6, 0.35), Color("6a6558"), Vector3(34.0, 0.4, 4.0)))
+	cemetery.add_child(PropFactoryScript.sphere(0.25, Color("9ab6ff"), Vector3(34.0, 2.1, 4.0)))
+	_add_lantern(cemetery, Vector3(33.0, 0.0, 5.2), Color("a8c0ff"), 0.7)
+
 	# Dead trees
-	for spot in [Vector3(32, 0, -20), Vector3(54, 0, -20), Vector3(56, 0, 6), Vector3(30, 0, 8), Vector3(49, 0, 8)]:
+	for spot in [Vector3(32, 0, -20), Vector3(54, 0, -20), Vector3(56, 0, 6), Vector3(30, 0, 8), Vector3(49, 0, 8), Vector3(58, 0, -8)]:
 		_add_dead_tree(cemetery, spot)
 
+	# Moss patches
+	for moss in [Vector3(35, 0.05, -8), Vector3(48, 0.05, 2), Vector3(52, 0.05, -16), Vector3(40, 0.05, -2)]:
+		cemetery.add_child(PropFactoryScript.box(Vector3(1.8, 0.08, 1.2), Color("3a4a38"), moss))
+
 	# Ruins + lanterns
-	cemetery.add_child(PropFactoryScript.box(Vector3(4.5, 2.2, 3.5), Color("4a4744"), Vector3(46.0, 0.0, -6.0)))
-	cemetery.add_child(PropFactoryScript.box(Vector3(2.2, 1.4, 1.8), Color("3f3c39"), Vector3(48.5, 0.0, -4.2)))
+	cemetery.add_child(PropFactoryScript.box(Vector3(4.5, 2.2, 3.5), Color("4a4744"), Vector3(51.0, 0.0, -16.0)))
+	cemetery.add_child(PropFactoryScript.box(Vector3(2.2, 1.4, 1.8), Color("3f3c39"), Vector3(53.5, 0.0, -14.2)))
 	_add_lantern(cemetery, Vector3(36.0, 0.0, -2.0), Color("9ab6ff"), 0.9)
 	_add_lantern(cemetery, Vector3(50.0, 0.0, -10.0), Color("8aa4ef"), 0.85)
 	_add_lantern(cemetery, Vector3(42.0, 0.0, 4.0), Color("7f99e0"), 0.8)
+	_add_lantern(cemetery, Vector3(46.0, 0.0, -10.0), Color("b090ff"), 1.05)
 
-	# Foggy cool fill light
+	# Foggy cool fill light + soft fog volumes
 	_add_zone_light(cemetery, Vector3(44, 4.0, -6), Color("6e7ea0"), 0.7, 16.0)
+	_add_fog_bank(cemetery, Vector3(44, 1.2, -6), 10.0)
+	_add_fog_bank(cemetery, Vector3(38, 1.0, 2), 7.0)
 
+	# Cemetery gate at village approach
+	var gate := Node3D.new()
+	gate.name = "CemeteryGate"
+	gate.position = Vector3(26.0, 0.0, -2.0)
+	cemetery.add_child(gate)
+	gate.add_child(PropFactoryScript.box(Vector3(0.35, 2.6, 0.35), Color("3c3c3a"), Vector3(-1.6, 0, 0)))
+	gate.add_child(PropFactoryScript.box(Vector3(0.35, 2.6, 0.35), Color("3c3c3a"), Vector3(1.6, 0, 0)))
+	gate.add_child(PropFactoryScript.box(Vector3(3.6, 0.35, 0.25), Color("454542"), Vector3(0, 2.4, 0)))
 	_add_label(cemetery, "Old Cemetery", Vector3(44.0, 5.2, -6.0))
+	_add_label(cemetery, "Gate", Vector3(26.0, 3.4, -2.0))
 
 
 func _build_boundary() -> void:
@@ -305,6 +383,22 @@ func _add_zone_light(parent: Node3D, position: Vector3, color: Color, energy: fl
 	light.light_energy = energy
 	light.omni_range = range_m
 	parent.add_child(light)
+
+
+func _add_fog_bank(parent: Node3D, position: Vector3, radius: float) -> void:
+	var fog := MeshInstance3D.new()
+	var sphere := SphereMesh.new()
+	sphere.radius = radius
+	sphere.height = radius * 0.55
+	fog.mesh = sphere
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(0.55, 0.62, 0.72, 0.12)
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	fog.material_override = mat
+	fog.position = position
+	fog.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	parent.add_child(fog)
 
 
 func _add_label(parent: Node3D, text: String, position: Vector3) -> void:

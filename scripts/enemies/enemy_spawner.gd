@@ -1,6 +1,5 @@
 class_name EnemySpawner
 extends Node3D
-## Places enemy encounters around forest / cemetery.
 
 const EnemyScene = preload("res://scenes/enemies/enemy.tscn")
 
@@ -12,6 +11,9 @@ func _ready() -> void:
 	])
 	_spawn_group(&"wolf", [
 		Vector3(-12, 0, -50), Vector3(12, 0, -46), Vector3(0, 0, -60),
+	])
+	_spawn_group(&"bandit", [
+		Vector3(-8, 0, -42), Vector3(10, 0, -55),
 	])
 	_spawn_group(&"skeleton", [
 		Vector3(36, 0, -8), Vector3(44, 0, -14), Vector3(50, 0, -4),

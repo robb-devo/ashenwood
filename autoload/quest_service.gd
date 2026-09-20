@@ -42,6 +42,7 @@ func _on_enemy_died(enemy_id: StringName, _pos: Vector3) -> void:
 		return
 	progress = mini(def.target_count, progress + 1)
 	EventBus.quest_updated.emit(active_quest_id)
+	EventBus.quest_progress_toast.emit("%s\n%d / %d" % [def.title.to_upper(), progress, def.target_count])
 	if progress >= def.target_count:
 		_complete_active()
 

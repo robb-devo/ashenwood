@@ -1,17 +1,16 @@
 class_name PlayerController
 extends CharacterBody3D
-## Movement + melee combat with auto-aim + death/respawn.
+## Responsive movement + weapon-aware combat (melee / bow / wand).
 
 const CombatMathScript = preload("res://scripts/combat/combat_math.gd")
 const PlayerVisualBuilderScript = preload("res://scripts/player/player_visual_builder.gd")
+const ItemDefScript = preload("res://scripts/data/item_def.gd")
+const ProjectileScene = preload("res://scenes/combat/projectile.tscn")
 
 @export var move_speed: float = 6.5
 @export var acceleration: float = 28.0
 @export var friction: float = 32.0
 @export var rotation_speed: float = 14.0
-@export var attack_range: float = 2.35
-@export var attack_cooldown: float = 0.36
-@export var auto_aim_range: float = 2.8
 
 @onready var visual: Node3D = $Visual
 @onready var bounce: Node3D = $Visual/Bounce
@@ -32,10 +31,13 @@ func _ready() -> void:
 	friction = GameConfig.PLAYER_FRICTION
 	rotation_speed = GameConfig.PLAYER_ROTATION_SPEED
 	PlayerVisualBuilderScript.build(bounce)
+	_refresh_weapon_visual()
 	add_to_group("player")
 	global_position = GameState.position
 	EventBus.player_spawned.emit(self)
 	EventBus.player_respawned.connect(_on_respawned)
+	EventBus.equipment_changed.connect(_refresh_weapon_visual)
+	EventBus.player_died.connect(_on_died_signal)
 	_play_anim("idle")
 
 
@@ -46,13 +48,10 @@ func _physics_process(delta: float) -> void:
 	if _dead:
 		_respawn_timer -= delta
 		velocity = Vector3.ZERO
-		if _respawn_timer <= 0.0:
-			GameState.respawn()
 		return
 
 	if InputService.consume_attack() or Input.is_action_just_pressed("ui_accept"):
 		try_attack()
-
 	if InputService.consume_interact() or Input.is_action_just_pressed("ui_focus_next"):
 		_try_interact_nearest()
 
@@ -60,7 +59,6 @@ func _physics_process(delta: float) -> void:
 	if input_dir.length_squared() < 0.0001:
 		input_dir = Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
 
-	# Stick/screen up = world -Z (into the scene). Not inverted.
 	var move_dir := Vector3(input_dir.x, 0.0, input_dir.y)
 	if move_dir.length_squared() > 0.0001 and not _attacking:
 		move_dir = move_dir.normalized()
@@ -84,13 +82,22 @@ func _physics_process(delta: float) -> void:
 	GameState.position = global_position
 
 
+func _get_weapon_def() -> ItemDef:
+	var eq = GameState.equipment[ItemDefScript.Slot.WEAPON]
+	if eq == null:
+		return ContentDB.get_item(&"rusty_sword")
+	return ContentDB.get_item(eq.item_id)
+
+
 func try_attack() -> void:
 	if _dead or _attack_cd > 0.0:
 		return
-	_attack_cd = attack_cooldown
+	var wdef := _get_weapon_def()
+	var speed_mult := wdef.attack_speed if wdef else 1.0
+	_attack_cd = 0.38 / maxf(0.5, speed_mult)
 	_attacking = true
 
-	var target := _find_auto_aim_target()
+	var target := _find_auto_aim_target(wdef.attack_range if wdef else 2.5)
 	if target != null:
 		var to_t := target.global_position - global_position
 		to_t.y = 0.0
@@ -100,16 +107,40 @@ func try_attack() -> void:
 	_play_anim("attack")
 	AudioService.play_sfx(&"player_attack")
 	AudioService.pulse_haptic(0.15)
-	_deal_melee_hits(target)
-	get_tree().create_timer(0.2).timeout.connect(func():
+
+	if wdef and wdef.weapon_type == ItemDefScript.WeaponType.BOW:
+		_fire_projectile(target, Color("d8e8b0"), wdef)
+	elif wdef and wdef.weapon_type == ItemDefScript.WeaponType.WAND:
+		_fire_projectile(target, Color("ff7a3a"), wdef)
+	else:
+		_deal_melee_hits(target, wdef.attack_range if wdef else 2.3)
+
+	var cam := get_tree().get_first_node_in_group("player_camera")
+	if cam and cam.has_method("shake"):
+		cam.shake(0.08)
+
+	get_tree().create_timer(0.18).timeout.connect(func():
 		_attacking = false
 		_play_anim("walk" if _is_moving else "idle")
 	)
 
 
-func _find_auto_aim_target() -> Node3D:
+func _fire_projectile(preferred: Node3D, tint: Color, wdef: ItemDef) -> void:
+	var dir := get_facing_direction()
+	if preferred != null and is_instance_valid(preferred):
+		dir = preferred.global_position - global_position
+		dir.y = 0.0
+		if dir.length_squared() > 0.0001:
+			dir = dir.normalized()
+	var roll: Dictionary = CombatMathScript.roll_player_damage()
+	var proj := ProjectileScene.instantiate()
+	get_parent().add_child(proj)
+	proj.setup(global_position + Vector3(0, 1.1, 0) + dir * 0.6, dir, int(roll.damage), bool(roll.critical), wdef.projectile_speed, tint, self)
+
+
+func _find_auto_aim_target(range_v: float) -> Node3D:
 	var best: Node3D = null
-	var best_dist := auto_aim_range
+	var best_score := range_v
 	var facing := get_facing_direction()
 	for enemy in get_tree().get_nodes_in_group("enemies"):
 		if enemy == null or not is_instance_valid(enemy):
@@ -117,29 +148,30 @@ func _find_auto_aim_target() -> Node3D:
 		var to_e: Vector3 = enemy.global_position - global_position
 		to_e.y = 0.0
 		var dist := to_e.length()
-		if dist > auto_aim_range or dist < 0.01:
+		if dist > range_v or dist < 0.01:
 			continue
-		# Prefer enemies in front, but still allow nearby behind for mobile feel
-		var facing_score := facing.dot(to_e.normalized())
-		var score := dist - facing_score * 0.65
-		if score < best_dist:
-			best_dist = score
+		var score := dist - facing.dot(to_e.normalized()) * 0.8
+		if score < best_score:
+			best_score = score
 			best = enemy as Node3D
 	return best
 
 
-func _deal_melee_hits(preferred: Node3D = null) -> void:
-	var origin := global_position + Vector3(0, 0.8, 0)
+func _deal_melee_hits(preferred: Node3D, range_v: float) -> void:
 	var facing := get_facing_direction()
 	var hit_any := false
-
 	if preferred != null and is_instance_valid(preferred) and preferred.has_method("apply_damage"):
-		var to_p: Vector3 = preferred.global_position - global_position
-		to_p.y = 0.0
-		if to_p.length() <= attack_range * 1.05:
+		var d: float = global_position.distance_to(preferred.global_position)
+		if d <= range_v * 1.05:
 			var roll: Dictionary = CombatMathScript.roll_player_damage()
 			preferred.apply_damage(int(roll.damage), bool(roll.critical))
+			if preferred.has_method("apply_knockback"):
+				preferred.apply_knockback(facing * 4.0)
 			hit_any = true
+			if bool(roll.critical):
+				var cam := get_tree().get_first_node_in_group("player_camera")
+				if cam and cam.has_method("shake"):
+					cam.shake(0.14)
 
 	for enemy in get_tree().get_nodes_in_group("enemies"):
 		if enemy == null or not is_instance_valid(enemy) or enemy == preferred:
@@ -147,17 +179,18 @@ func _deal_melee_hits(preferred: Node3D = null) -> void:
 		var to_e: Vector3 = enemy.global_position - global_position
 		to_e.y = 0.0
 		var dist := to_e.length()
-		if dist > attack_range:
+		if dist > range_v:
 			continue
-		if dist > 0.25 and facing.dot(to_e.normalized()) < 0.2:
+		if dist > 0.25 and facing.dot(to_e.normalized()) < 0.15:
 			continue
 		var roll2: Dictionary = CombatMathScript.roll_player_damage()
-		if enemy.has_method("apply_damage"):
-			enemy.apply_damage(int(roll2.damage), bool(roll2.critical))
-			hit_any = true
+		enemy.apply_damage(int(roll2.damage), bool(roll2.critical))
+		if enemy.has_method("apply_knockback"):
+			enemy.apply_knockback(facing * 3.2)
+		hit_any = true
 
 	if not hit_any:
-		VfxService.spawn_hit_flash(origin + facing * 1.25, false)
+		VfxService.spawn_hit_flash(global_position + Vector3(0, 0.9, 0) + facing * 1.2, false)
 
 
 func receive_enemy_hit(raw_damage: int) -> void:
@@ -167,22 +200,39 @@ func receive_enemy_hit(raw_damage: int) -> void:
 	_i_frames = 0.55
 	EventBus.damage_dealt.emit(taken, false, global_position + Vector3(0, 1.3, 0))
 	_play_anim("hit")
+	var cam := get_tree().get_first_node_in_group("player_camera")
+	if cam and cam.has_method("shake"):
+		cam.shake(0.12)
 	if not GameState.is_alive():
 		_die()
 
 
 func _die() -> void:
 	_dead = true
-	_respawn_timer = 2.2
+	_respawn_timer = 999.0
 	_play_anim("death")
 	AudioService.play_sfx(&"player_death")
 	velocity = Vector3.ZERO
 
 
+func _on_died_signal() -> void:
+	_die()
+
+
+func return_to_village() -> void:
+	GameState.respawn()
+
+
 func _on_respawned() -> void:
 	_dead = false
+	_respawn_timer = 0.0
 	global_position = GameConfig.VILLAGE_SPAWN
 	_play_anim("idle")
+
+
+func _refresh_weapon_visual() -> void:
+	var wdef := _get_weapon_def()
+	PlayerVisualBuilderScript.set_weapon(bounce, wdef)
 
 
 func _try_interact_nearest() -> void:
@@ -215,9 +265,7 @@ func _set_moving(moving: bool) -> void:
 
 
 func _play_anim(anim_name: StringName) -> void:
-	if anim_player == null:
-		return
-	if not anim_player.has_animation(anim_name):
+	if anim_player == null or not anim_player.has_animation(anim_name):
 		return
 	if anim_player.current_animation == anim_name:
 		return

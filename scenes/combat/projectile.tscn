@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://ashenwood_projectile"]
+
+[ext_resource type="Script" path="res://scripts/combat/projectile.gd" id="1_proj"]
+
+[node name="Projectile" type="Area3D"]
+script = ExtResource("1_proj")

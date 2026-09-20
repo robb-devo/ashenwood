@@ -80,6 +80,9 @@ func try_interact() -> void:
 		if hud and hud.has_method("open_upgrade_from_blacksmith"):
 			hud.open_upgrade_from_blacksmith()
 	elif npc_id == &"merchant":
-		if GameState.spend_gold(15):
+		var hud := get_tree().get_first_node_in_group("hud")
+		if hud and hud.has_method("open_merchant_shop"):
+			hud.open_merchant_shop()
+		elif GameState.spend_gold(15):
 			GameState.add_item_by_id(&"health_vial", 1)
 			AudioService.play_sfx(&"loot_pickup")

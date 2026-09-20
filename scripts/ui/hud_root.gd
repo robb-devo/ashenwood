@@ -18,6 +18,11 @@ var quest_label: Label
 var toast_label: Label
 var hint_label: Label
 var portrait: Panel
+var boss_bar: ProgressBar
+var boss_label: Label
+var death_panel: Control
+var reward_overlay: Control
+var reward_label: Label
 
 var _menu: Control
 var _dialogue: Control
@@ -45,6 +50,13 @@ func _ready() -> void:
 	EventBus.quest_completed.connect(_on_quest_complete)
 	EventBus.dialogue_requested.connect(_show_dialogue)
 	EventBus.inventory_changed.connect(func(): if _menu and _menu.visible: _rebuild_menu_page())
+	EventBus.player_died.connect(_show_death)
+	EventBus.player_respawned.connect(_hide_death)
+	EventBus.boss_engaged.connect(_on_boss_engaged)
+	EventBus.boss_hp_changed.connect(_on_boss_hp)
+	EventBus.boss_defeated.connect(_on_boss_defeated)
+	EventBus.quest_progress_toast.connect(_toast)
+	EventBus.rare_loot_found.connect(_show_rare_loot)
 	_refresh_stats()
 	_refresh_quest()
 
@@ -65,6 +77,9 @@ func _build_hud() -> void:
 	_build_center_joystick()
 	_build_attack_cluster()
 	_build_toast_and_hint()
+	_build_boss_bar()
+	_build_death_panel()
+	_build_reward_overlay()
 
 
 func _build_top_left() -> void:
@@ -177,13 +192,13 @@ func _build_quest_tracker() -> void:
 
 
 func _build_center_joystick() -> void:
-	# Bottom-center stick (prompt: comfortable mobile; user: lower middle, not screen-center)
+	# LOWER LEFT virtual stick (premium mobile layout)
 	var stick := Control.new()
 	stick.set_script(JoystickScript)
-	stick.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
-	stick.offset_left = -160
+	stick.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	stick.offset_left = 20
 	stick.offset_top = -360
-	stick.offset_right = 160
+	stick.offset_right = 340
 	stick.offset_bottom = -40
 	stick.mouse_filter = Control.MOUSE_FILTER_STOP
 	root.add_child(stick)
@@ -273,6 +288,140 @@ func _build_toast_and_hint() -> void:
 	root.add_child(hint_label)
 
 
+func _build_boss_bar() -> void:
+	var wrap := VBoxContainer.new()
+	wrap.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	wrap.offset_left = -280
+	wrap.offset_top = 300
+	wrap.offset_right = 280
+	wrap.offset_bottom = 370
+	wrap.visible = false
+	wrap.name = "BossWrap"
+	root.add_child(wrap)
+	boss_label = Label.new()
+	boss_label.text = "GRAVEKEEPER"
+	boss_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	boss_label.add_theme_font_size_override("font_size", 24)
+	boss_label.add_theme_color_override("font_color", Color("ffd6a0"))
+	wrap.add_child(boss_label)
+	boss_bar = ProgressBar.new()
+	boss_bar.custom_minimum_size = Vector2(0, 22)
+	boss_bar.show_percentage = false
+	boss_bar.add_theme_stylebox_override("background", UiThemeScript.bar_bg())
+	boss_bar.add_theme_stylebox_override("fill", UiThemeScript.bar_hp())
+	wrap.add_child(boss_bar)
+
+
+func _build_death_panel() -> void:
+	death_panel = PanelContainer.new()
+	death_panel.visible = false
+	death_panel.set_anchors_preset(Control.PRESET_CENTER)
+	death_panel.offset_left = -280
+	death_panel.offset_top = -160
+	death_panel.offset_right = 280
+	death_panel.offset_bottom = 160
+	death_panel.add_theme_stylebox_override("panel", UiThemeScript.panel_dark(28, 0.95))
+	root.add_child(death_panel)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 16)
+	death_panel.add_child(v)
+	var t := Label.new()
+	t.text = "YOU FELL"
+	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	t.add_theme_font_size_override("font_size", 42)
+	t.add_theme_color_override("font_color", Color("ffd0a0"))
+	v.add_child(t)
+	var s := Label.new()
+	s.text = "Return to Ashenwood Village"
+	s.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	s.add_theme_font_size_override("font_size", 22)
+	v.add_child(s)
+	var btn := Button.new()
+	btn.text = "RETURN TO VILLAGE"
+	btn.custom_minimum_size = Vector2(0, 74)
+	btn.add_theme_font_size_override("font_size", 26)
+	_style_button(btn)
+	btn.pressed.connect(func():
+		var p := get_tree().get_first_node_in_group("player")
+		if p and p.has_method("return_to_village"):
+			p.return_to_village()
+		AudioService.play_ui(&"ui_confirm")
+	)
+	v.add_child(btn)
+
+
+func _build_reward_overlay() -> void:
+	reward_overlay = ColorRect.new()
+	reward_overlay.visible = false
+	reward_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	reward_overlay.color = Color(0, 0, 0, 0.55)
+	reward_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	root.add_child(reward_overlay)
+	reward_label = Label.new()
+	reward_label.set_anchors_preset(Control.PRESET_CENTER)
+	reward_label.offset_left = -300
+	reward_label.offset_top = -100
+	reward_label.offset_right = 300
+	reward_label.offset_bottom = 100
+	reward_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	reward_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	reward_label.add_theme_font_size_override("font_size", 34)
+	reward_label.add_theme_color_override("font_color", Color("ffe6a8"))
+	reward_overlay.add_child(reward_label)
+	reward_overlay.gui_input.connect(func(ev):
+		if (ev is InputEventMouseButton and ev.pressed) or (ev is InputEventScreenTouch and ev.pressed):
+			reward_overlay.visible = false
+	)
+
+
+func _show_death() -> void:
+	if death_panel:
+		death_panel.visible = true
+
+
+func _hide_death() -> void:
+	if death_panel:
+		death_panel.visible = false
+
+
+func _on_boss_engaged(_id: StringName, hp: int, max_hp: int) -> void:
+	var wrap := root.get_node_or_null("BossWrap")
+	if wrap:
+		wrap.visible = true
+	if boss_bar:
+		boss_bar.max_value = max_hp
+		boss_bar.value = hp
+
+
+func _on_boss_hp(_id: StringName, hp: int, max_hp: int) -> void:
+	if boss_bar:
+		boss_bar.max_value = max_hp
+		boss_bar.value = hp
+
+
+func _on_boss_defeated(_id: StringName) -> void:
+	var wrap := root.get_node_or_null("BossWrap")
+	if wrap:
+		wrap.visible = false
+	_toast("GRAVEKEEPER DEFEATED")
+
+
+func _show_rare_loot(item_id: StringName) -> void:
+	var def = ContentDB.get_item(item_id)
+	if def == null or reward_overlay == null:
+		return
+	reward_label.text = "NEW ITEM\n%s\n%s" % [def.name, ItemDefScript.rarity_name(def.rarity)]
+	reward_label.add_theme_color_override("font_color", ItemDefScript.rarity_color(def.rarity))
+	reward_overlay.visible = true
+	reward_overlay.modulate.a = 0.0
+	reward_label.scale = Vector2(0.6, 0.6)
+	var tw := create_tween()
+	tw.tween_property(reward_overlay, "modulate:a", 1.0, 0.18)
+	tw.parallel().tween_property(reward_label, "scale", Vector2.ONE, 0.28).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	AudioService.play_sfx(&"loot_pickup")
+	AudioService.play_sfx(&"quest_complete")
+
+
 func _style_button(btn: Button) -> void:
 	btn.add_theme_stylebox_override("normal", UiThemeScript.button_quiet())
 	btn.add_theme_stylebox_override("pressed", UiThemeScript.button_quiet())
@@ -285,6 +434,13 @@ func open_upgrade_from_blacksmith() -> void:
 	_page = &"upgrade"
 	_rebuild_menu_page()
 	EventBus.ui_menu_opened.emit(&"upgrade")
+
+
+func open_merchant_shop() -> void:
+	_menu.visible = true
+	_page = &"shop"
+	_rebuild_menu_page()
+	EventBus.ui_menu_opened.emit(&"shop")
 
 
 func set_interact_prompt(show: bool, npc_name: String = "") -> void:
@@ -311,6 +467,10 @@ func _refresh_quest() -> void:
 
 func _on_level_up(level: int) -> void:
 	_toast("LEVEL UP  ·  Lv. %d" % level)
+	if portrait:
+		var tw := create_tween()
+		tw.tween_property(portrait, "modulate", Color("ffe08a"), 0.12)
+		tw.tween_property(portrait, "modulate", Color.WHITE, 0.45)
 
 
 func _on_quest_complete(quest_id: StringName) -> void:
@@ -458,9 +618,45 @@ func _rebuild_menu_page() -> void:
 			_populate_quests()
 		&"upgrade":
 			_populate_upgrade()
+		&"shop":
+			_populate_shop()
 		&"settings":
 			_populate_settings()
 
+
+func _populate_shop() -> void:
+	_add_menu_label("Merchant Stall")
+	_add_menu_label("Your gold: %d" % GameState.gold)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 12)
+	_menu_body.add_child(row)
+	var info := Label.new()
+	info.text = "Health Vial\nRestores HP\n15 Gold"
+	info.add_theme_font_size_override("font_size", 24)
+	info.add_theme_color_override("font_color", Color("efe6d4"))
+	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(info)
+	var buy := Button.new()
+	buy.text = "BUY"
+	buy.custom_minimum_size = Vector2(140, 72)
+	buy.add_theme_font_size_override("font_size", 26)
+	_style_button(buy)
+	buy.pressed.connect(func():
+		if GameState.spend_gold(15):
+			GameState.add_item_by_id(&"health_vial", 1)
+			AudioService.play_sfx(&"loot_pickup")
+			_toast("Bought Health Vial")
+			_rebuild_menu_page()
+		else:
+			_toast("Not enough gold")
+			AudioService.play_ui(&"ui_click")
+	)
+	row.add_child(buy)
+	var close_hint := Label.new()
+	close_hint.text = "Talk to the Merchant again anytime."
+	close_hint.add_theme_font_size_override("font_size", 20)
+	close_hint.add_theme_color_override("font_color", Color(0.8, 0.75, 0.65, 0.8))
+	_menu_body.add_child(close_hint)
 
 func _add_menu_label(text: String) -> Label:
 	var l := Label.new()

@@ -84,6 +84,29 @@ func spawn_level_up() -> void:
 	if player == null:
 		return
 	spawn_hit_flash(player.global_position + Vector3(0, 0.5, 0), true)
+	_ensure_root()
+	if _world_fx_root == null:
+		return
+	var ring := MeshInstance3D.new()
+	var cyl := CylinderMesh.new()
+	cyl.top_radius = 0.4
+	cyl.bottom_radius = 0.4
+	cyl.height = 0.08
+	ring.mesh = cyl
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color("ffd76a")
+	mat.emission_enabled = true
+	mat.emission = Color("ffc040")
+	mat.emission_energy_multiplier = 2.5
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	ring.material_override = mat
+	_world_fx_root.add_child(ring)
+	ring.global_position = player.global_position + Vector3(0, 0.15, 0)
+	var tw := create_tween()
+	tw.tween_property(cyl, "top_radius", 2.4, 0.55)
+	tw.parallel().tween_property(cyl, "bottom_radius", 2.4, 0.55)
+	tw.parallel().tween_property(mat, "albedo_color:a", 0.0, 0.55)
+	tw.tween_callback(ring.queue_free)
 
 
 func spawn_quest_complete() -> void:
