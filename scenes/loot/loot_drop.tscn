@@ -1,0 +1,8 @@
+[gd_scene load_steps=2 format=3 uid="uid://ashenwood_loot"]
+
+[ext_resource type="Script" path="res://scripts/loot/loot_drop.gd" id="1_loot"]
+
+[node name="LootDrop" type="Area3D"]
+collision_layer = 16
+collision_mask = 2
+script = ExtResource("1_loot")

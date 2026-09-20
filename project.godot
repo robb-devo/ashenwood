@@ -1,0 +1,57 @@
+; Engine configuration file.
+; Ashenwood — portrait mobile action RPG vertical slice
+; Godot 4.7.x
+
+config_version=5
+
+[application]
+
+config/name="Ashenwood"
+config/description="A dark fantasy mobile action RPG vertical slice set in Ashenwood village."
+config/version="0.3.0"
+config/tags=PackedStringArray("rpg", "mobile", "android", "action")
+run/main_scene="res://scenes/main/main.tscn"
+config/features=PackedStringArray("4.7", "Mobile")
+config/icon="res://assets/placeholders/app_icon.svg"
+
+[autoload]
+
+GameConfig="*res://autoload/game_config.gd"
+EventBus="*res://autoload/event_bus.gd"
+ContentDB="*res://autoload/content_db.gd"
+InputService="*res://autoload/input_service.gd"
+AudioService="*res://autoload/audio_service.gd"
+GameState="*res://autoload/game_state.gd"
+VfxService="*res://autoload/vfx_service.gd"
+QuestService="*res://autoload/quest_service.gd"
+SaveService="*res://autoload/save_service.gd"
+
+[display]
+
+window/size/viewport_width=1080
+window/size/viewport_height=1920
+window/size/window_width_override=405
+window/size/window_height_override=720
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+window/handheld/orientation=1
+
+[input_devices]
+
+pointing/emulate_touch_from_mouse=true
+
+[layer_names]
+
+3d_physics/layer_1="world"
+3d_physics/layer_2="player"
+3d_physics/layer_3="enemy"
+3d_physics/layer_4="interactable"
+3d_physics/layer_5="loot"
+3d_physics/layer_6="projectile"
+
+[rendering]
+
+renderer/rendering_method="mobile"
+textures/vram_compression/import_etc2_astc=true
+anti_aliasing/quality/msaa_3d=1
+environment/defaults/default_clear_color=Color(0.08, 0.09, 0.12, 1)
