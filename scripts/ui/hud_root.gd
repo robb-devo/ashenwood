@@ -521,7 +521,7 @@ func _populate_inventory(upgrade_mode: bool) -> void:
 		inspect.text = "Info"
 		inspect.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		_style_button(inspect)
-		var captured_uid := item.uid
+		var captured_uid: String = String(item.uid)
 		inspect.pressed.connect(func(): _inspect_item(captured_uid))
 		actions.add_child(inspect)
 
@@ -530,11 +530,12 @@ func _populate_inventory(upgrade_mode: bool) -> void:
 			eq.text = "Equip" if not upgrade_mode else "Select"
 			eq.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			_style_button(eq)
+			var eq_uid: String = captured_uid
 			eq.pressed.connect(func():
 				if upgrade_mode:
-					_selected_uid = captured_uid
+					_selected_uid = eq_uid
 				else:
-					GameState.equip_uid(captured_uid)
+					GameState.equip_uid(eq_uid)
 					AudioService.play_ui()
 				_rebuild_menu_page()
 			)
@@ -544,8 +545,9 @@ func _populate_inventory(upgrade_mode: bool) -> void:
 			use.text = "Use"
 			use.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			_style_button(use)
+			var use_uid: String = captured_uid
 			use.pressed.connect(func():
-				GameState.use_consumable_uid(captured_uid)
+				GameState.use_consumable_uid(use_uid)
 				_rebuild_menu_page()
 			)
 			actions.add_child(use)
