@@ -13,6 +13,8 @@ func _ready() -> void:
 	EventBus.player_leveled_up.connect(func(_l): save_game())
 	EventBus.quest_completed.connect(func(_q): save_game())
 	EventBus.equipment_changed.connect(func(): save_game())
+	EventBus.player_gold_changed.connect(func(_g): save_game())
+	EventBus.boss_defeated.connect(func(_id): save_game())
 	load_game()
 
 

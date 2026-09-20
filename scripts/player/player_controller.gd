@@ -297,7 +297,21 @@ func _update_zone() -> void:
 	match _zone:
 		&"forest":
 			AudioService.play_music(&"forest_ambient")
+			_set_world_mood(Color(0.16, 0.2, 0.18), 0.007, Color(0.85, 0.95, 0.88), 0.95)
 		&"cemetery":
 			AudioService.play_music(&"cemetery_ambient")
+			_set_world_mood(Color(0.1, 0.11, 0.14), 0.012, Color(0.7, 0.78, 0.95), 0.85)
 		_:
 			AudioService.play_music(&"village_ambient")
+			_set_world_mood(Color(0.12, 0.14, 0.16), 0.0055, Color(1.0, 0.93, 0.82), 1.15)
+
+
+func _set_world_mood(bg: Color, fog_density: float, sun_color: Color, sun_energy: float) -> void:
+	var env_node := get_tree().current_scene.get_node_or_null("WorldEnvironment") as WorldEnvironment
+	if env_node and env_node.environment:
+		env_node.environment.background_color = bg
+		env_node.environment.fog_density = fog_density
+	var sun := get_tree().current_scene.get_node_or_null("Sun") as DirectionalLight3D
+	if sun:
+		sun.light_color = sun_color
+		sun.light_energy = sun_energy
